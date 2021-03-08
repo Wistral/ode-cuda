@@ -1,3 +1,6 @@
+NVCC=nvcc
+#NVCCFLAGS=
+
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS)
 #.cu.lo:
