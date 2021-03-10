@@ -1,13 +1,16 @@
+NVCC=nvcc
+NVCCFLAGS=-L/usr/local/cuda/lib64 -lcudart_static -lcuda
+
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS)
 #.cu.lo:
 #	$(top_srcdir)/cudalt.py $@ $(NVCC) -c $(NVCCFLAGS) $<
 .cu.lo:
-	$(LIBTOOL) --tag=CXX --mode=compile $(NVCC) --compile $(NVCC_FLAGS) -I$(top_srcdir)/include/ -I$(top_srcdir)/include/ode/ --machine 64 -o $@ $^ -static
+	$(LIBTOOL) --tag=CXX --mode=compile $(NVCC) --compile $(NVCC_FLAGS) -I$(top_srcdir)/include/ -I$(top_srcdir)/include/ode/ --m64 -o $@ $^ -static
 
 SUBDIRS = joints
 
-AM_CPPFLAGS = -I$(top_srcdir)/include
+AM_CPPFLAGS = -I$(top_srcdir)/include $(NVCC_FLAGS)
 
 # convenience library to simulate per object cflags
 noinst_LTLIBRARIES = libfast.la
@@ -68,12 +71,12 @@ libode_la_SOURCES =     array.cpp array.h \
                         testing.cpp testing.h \
                         timer.cpp \
                         util.cpp util.h \
-						cuda_matrix.cu cuda_matrix.h \
-						cuPrintf.cu cuPrintf.cuh \
-						cuda_helper.cu cuda_helper.h \
-						cuda_demo_helper.cu cuda_demo_helper.h \
-						cuda_step.cu cuda_step.h \
-						cuda_mltstep.cpp cuda_mltstep.h
+                        cuda_matrix.cu cuda_matrix.h \
+                        cuPrintf.cu \
+                        cuda_helper.cu cuda_helper.h \
+                        cuda_demo_helper.cu cuda_demo_helper.h \
+                        cuda_step.cu cuda_step.h \
+                        cuda_mltstep.cpp cuda_mltstep.h
 
 
 ###################################

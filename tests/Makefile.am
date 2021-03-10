@@ -12,7 +12,10 @@ if OPCODE
 endif
 
 LDADD = $(builddir)/UnitTest++/src/libunittestpp.la \
-        $(top_builddir)/ode/src/libode.la
+        $(top_builddir)/ode/src/libode.la \
+        $(top_builddir)/ode/src/cuda_helper.lo \
+        $(top_builddir)/ode/src/cuda_matrix.lo \
+        -L/usr/local/cuda/lib64 -lcudart -lcuda -ldl -lrt
 
 check_PROGRAMS = tests
 

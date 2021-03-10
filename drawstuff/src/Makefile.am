@@ -15,7 +15,7 @@ endif
 
 if X11
 libdrawstuff_la_SOURCES+= x11.cpp
-libdrawstuff_la_LIBADD = $(X_LIBS)
+libdrawstuff_la_LIBADD = $(X_LIBS) -lX11
 endif
 
 if OSX

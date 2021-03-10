@@ -7,6 +7,13 @@
 extern "C" {
 #endif
 
+#define RM_STRUCT(X) \
+typedef struct X X;
+
+RM_STRUCT(dxBody);
+RM_STRUCT(dxJoint);
+RM_STRUCT(dxWorld);
+
 ODE_API void cuda_testMemcpy();
 
 ODE_API dReal *cuda_copyToDevice(dReal *a, int n);

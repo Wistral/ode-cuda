@@ -42,7 +42,7 @@
 
 // memory allocation system
 #ifdef dUSE_MALLOC_FOR_ALLOCA
-unsigned int dMemoryFlag;
+extern unsigned int dMemoryFlag;
 #define REPORT_OUT_OF_MEMORY fprintf(stderr, "Insufficient memory to complete rigid body simulation.  Results will not be accurate.\n")
 
 #define CHECK(p)                                \
