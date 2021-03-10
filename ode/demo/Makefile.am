@@ -7,10 +7,6 @@ endif
 
 # On Windows, GL_LIBS must go after libdrawstuff.la.
 LDADD = $(top_builddir)/drawstuff/src/libdrawstuff.la \
-        $(top_builddir)/ode/src/cuda_helper.lo \
-        $(top_builddir)/ode/src/cuda_matrix.lo \
-        $(top_builddir)/ode/src/cuda_mltstep.lo \
-        $(top_builddir)/ode/src/cuda_step.lo \
         $(top_builddir)/ode/src/cuPrintf.lo \
         $(top_builddir)/ode/src/libode.la @GL_LIBS@
 

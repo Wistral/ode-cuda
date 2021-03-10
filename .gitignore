@@ -13,8 +13,15 @@ ode/src/stamp-h1
 *.la
 .libs
 
+*-release
+.vscode
+compile
+missing
+test-driver
+
 drawstuff/dstest/dstest
 ode/.DS_Store
+ode/demo/cuda_demo_ode
 ode/demo/demo_I
 ode/demo/demo_basket
 ode/demo/demo_boxstack
