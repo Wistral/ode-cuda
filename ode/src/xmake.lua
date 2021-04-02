@@ -1,6 +1,6 @@
 
 target("ode")
-set_languages("c99", "c++11")
+set_languages("c99", "c++17")
 set_kind("static")
 
 on_load(function (target)
@@ -86,6 +86,9 @@ add_files(
     ,"*.cu"
 
 )
+add_cuflags("-g")
+add_cxxflags("-g")
+add_cxflags("-g")
 add_includedirs(
     "."
     ,"$(projectdir)/OPCODE"

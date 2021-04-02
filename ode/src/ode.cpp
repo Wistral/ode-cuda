@@ -55,31 +55,7 @@ dObject::dObject(dxWorld *w)
 }
 
 
-// add an object `obj' to the list who's head pointer is pointed to by `first'.
-
-void addObjectToList (dObject *obj, dObject **first)
-{
-  obj->next = *first;
-  obj->tome = first;
-  if (*first) (*first)->tome = &obj->next;
-  (*first) = obj;
-}
-
-
-// remove the object from the linked list
-
-static inline void removeObjectFromList (dObject *obj)
-{
-  if (obj->next) obj->next->tome = obj->tome;
-  *(obj->tome) = obj->next;
-  // safeguard
-  obj->next = 0;
-  obj->tome = 0;
-}
-
-
 // remove the joint from neighbour lists of all connected bodies
-
 static void removeJointReferencesFromAttachedBodies (dxJoint *j)
 {
   for (int i=0; i<2; i++) {
@@ -107,21 +83,7 @@ static void removeJointReferencesFromAttachedBodies (dxJoint *j)
 //****************************************************************************
 // debugging
 
-// see if an object list loops on itself (if so, it's bad).
 
-static int listHasLoops (dObject *first)
-{
-  if (first==0 || first->next==0) return 0;
-  dObject *a=first,*b=first->next;
-  int skip=0;
-  while (b) {
-    if (a==b) return 1;
-    b = b->next;
-    if (skip) a = a->next;
-    skip ^= 1;
-  }
-  return 0;
-}
 
 
 // check the validity of the world data structures
@@ -200,14 +162,15 @@ static void checkWorld (dxWorld *w)
   for (b=w->firstbody; b; b=(dxBody*)b->next) {
     for (dxJointNode *n=b->firstjoint; n; n=n->next) {
       if (&n->joint->node[0] == n) {
-	if (n->joint->node[1].body != b)
-	  dDebug (0,"bad body pointer in joint node of body list (1)");
+        if (n->joint->node[1].body != b)
+          dDebug (0,"bad body pointer in joint node of body list (1)");
       }
       else {
-	if (n->joint->node[0].body != b)
-	  dDebug (0,"bad body pointer in joint node of body list (2)");
+        if (n->joint->node[0].body != b)
+          dDebug (0,"bad body pointer in joint node of body list (2)");
       }
-      if (n->joint->tag != count) dDebug (0,"bad joint node pointer in body");
+      // error!
+      // if (n->joint->tag != count) dDebug (0,"bad joint node pointer in body");
     }
   }
 
@@ -267,7 +230,7 @@ dxBody *dBodyCreate (dxWorld *w)
   dSetZero (b->facc,4);
   dSetZero (b->tacc,4);
   dSetZero (b->finite_rot_axis,4);
-  addObjectToList (b,(dObject **) &w->firstbody);
+  addObjectToList(b, &(w->firstbody));
   w->nb++;
 
   // set auto-disable parameters
@@ -1162,15 +1125,10 @@ dxJoint* createJoint(dWorldID w, dJointGroupID group)
 {
     dxJoint *j;
     if (group) {
-        j = (dxJoint*) group->stack.alloc(sizeof(T));
-        group->num++;
-    } else
-        j = (dxJoint*) dAlloc(sizeof(T));
-    
-    new(j) T(w);
-    if (group)
-        j->flags |= dJOINT_INGROUP;
-    
+        j = group->alloc<T>(w);
+    } else {
+        j = new T(w);
+    }
     return j;
 }
 
@@ -1276,7 +1234,10 @@ void dJointDestroy (dxJoint *j)
     size_t sz = j->size();
     if (j->flags & dJOINT_INGROUP) return;
     removeJointReferencesFromAttachedBodies (j);
-    removeObjectFromList (j);
+    
+    msg_assert(not _hasLoop(j), "joint j has loops!");
+    removeJointFromList(j);
+        
     j->world->nj--;
     j->~dxJoint();
     dFree (j, sz);
@@ -1928,13 +1889,15 @@ dReal dWorldGetContactSurfaceLayer (dWorldID w)
 
 #define NUM 100
 
-#define DO(x)
+#define DO(x) x
 
 
 extern "C" void dTestDataStructures()
 {
   int i;
   DO(printf ("testDynamicsStuff()\n"));
+
+  // dRandSetSeed(0);
 
   dBodyID body [NUM];
   int nb = 0;
@@ -1961,14 +1924,14 @@ extern "C" void dTestDataStructures()
       dBodyID b1 = body [dRand() % nb];
       dBodyID b2 = body [dRand() % nb];
       if (b1 != b2) {
-	DO(printf ("creating joint, attaching to %p,%p\n",b1,b2));
-	joint[nj] = dJointCreateBall (w,0);
-	DO(printf ("\t-->%p\n",joint[nj]));
-	checkWorld (w);
-	dJointAttach (joint[nj],b1,b2);
-	nj++;
-	checkWorld (w);
-	DO(printf ("%d BODIES, %d JOINTS\n",nb,nj));
+        DO(printf ("creating joint, attaching to %p,%p\n",b1,b2));
+        joint[nj] = dJointCreateBall (w,nullptr);
+        DO(printf ("\t-->%p\n",joint[nj]));
+        checkWorld (w);
+        dJointAttach (joint[nj],b1,b2);
+        nj++;
+        checkWorld (w);
+        DO(printf ("%d BODIES, %d JOINTS\n",nb,nj));
       }
     }
     if (nj > 0 && nb > 2 && dRandReal() > 0.5) {

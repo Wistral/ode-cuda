@@ -12,6 +12,17 @@ ODE_API void printMatrix(char *name, dReal *a, int h, int w)
 	printf("\n");
 }
 
+ODE_API void printMatrixf(const char *name, dReal const*a, const int h, const int w)
+{
+	printf("%s:\n", name);
+	for (int row=0; row<h; row++) {
+		for (int col=0; col<w; col++)
+			printf("%.2f, ", a[row*w+col]);
+		printf("\n");
+	}
+	printf("\n");
+}
+
 ODE_API void makeIdMatrix(dReal *a, int s, int n)
 {
 	for (int row=0; row<s; row++) {

@@ -19,7 +19,8 @@
  * LICENSE.TXT and LICENSE-BSD.TXT for more details.                     *
  *                                                                       *
  *************************************************************************/
-
+#include <type_traits>
+#include <limits>
 #include <setjmp.h>
 #include <ode/ode.h>
 
@@ -86,10 +87,26 @@ void myMessageFunction (int num, const char *msg, va_list ap)
 
 // compare two numbers, within a threshhold, return 1 if approx equal
 
-int cmp (dReal a, dReal b)
-{
-  return (fabs(a-b) < tol);
+// int cmp (dReal a, dReal b)
+// {
+//   return (fabs(a-b) < tol);
+// }
+
+// USE `IsAlmostEqual()` REPLACE `cmp()`
+// Test whether two float or double numbers are equal.
+// ulp: units in the last place.
+template <typename T, typename T2>
+typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
+IsAlmostEqual(T x, T2 y, int ulp = 2) {
+  // the machine epsilon has to be scaled to the magnitude of the values used
+  // and multiplied by the desired precision in ULPs (units in the last place)
+  return std::fabs(x - y) <
+             std::numeric_limits<T>::epsilon() * std::fabs(x + y) * ulp
+         // unless the result is subnormal
+         || std::fabs(x - y) < std::numeric_limits<T>::min();
 }
+
+#define cmp IsAlmostEqual
 
 //****************************************************************************
 // matrix utility stuff
@@ -614,16 +631,23 @@ void compareMassParams (dMass *m1, dMass *m2, const char *msg)
 {
   int i,j,ok = 1;
   if (!(cmp(m1->mass,m2->mass) && cmp(m1->c[0],m2->c[0]) &&
-	cmp(m1->c[1],m2->c[1]) && cmp(m1->c[2],m2->c[2])))
+	cmp(m1->c[1],m2->c[1]) && cmp(m1->c[2],m2->c[2]))){
+    printf("m1, m2 ->c mass not equal!\n");
     ok = 0;
+  }
+    
   for (i=0; i<3; i++) for (j=0; j<3; j++)
-    if (cmp (m1->_I(i,j),m2->_I(i,j))==0) ok = 0;
+    if (!cmp (m1->_I(i,j),m2->_I(i,j))) {
+      printf("m1, m2 ->I[%d, %d] {%f, %f} mass not equal!\n", i, j, m1->_I(i,j),m2->_I(i,j));
+      printMassParams(m1);
+      printMassParams(m2);
+      ok = 0;
+    }
   if (ok) printf ("\tpassed (%s)\n",msg); else printf ("\tFAILED (%s)\n",msg);
 }
 
 
 // compute the mass parameters of a particle set
-
 void computeMassParams (dMass *m, dReal q[NUMP][3], dReal pm[NUMP])
 {
   int i,j;
@@ -647,11 +671,13 @@ void computeMassParams (dMass *m, dReal q[NUMP][3], dReal pm[NUMP])
 
 void testMassFunctions()
 {
+  auto ShowMass = [](dMass *m){
+  };
   dMass m;
   int i,j;
   dReal q[NUMP][3];		// particle positions
   dReal pm[NUMP];		// particle masses
-  dMass m1,m2;
+  dMass m1{},m2{};
   dMatrix3 R;
 
   HEADER;
@@ -1116,34 +1142,46 @@ extern "C" void dTestSolveLCP();
 
 int main(int argc, char *argv[])
 {
-	dBodySetMass(NULL,NULL);
-//  dInitODE();
-/*  testRandomNumberGenerator();
-  testInfinity();
-  testPad();
-  testCrossProduct();
-  testSetZero();
-  testNormalize3();
+	// dBodySetMass(NULL,NULL);
+  dInitODE();
+  // testRandomNumberGenerator();
+  // testInfinity();
+  // testPad();
+  // testCrossProduct();
+  // testSetZero();
+  // testNormalize3();
   //testReorthonormalize();     ... not any more
-  testPlaneSpace();
-  testMatrixMultiply();
-  testSmallMatrixMultiply();
-  testCholeskyFactorization();
-  testCholeskySolve();
-  testInvertPDMatrix();
-  testIsPositiveDefinite();
-  testFastLDLTFactorization();
-  testSolveLDLT();
-  testLDLTAddTL();
-  testLDLTRemove();
-  testMassFunctions();
-  testRtoQandQtoR();
-  testQuaternionMultiply();
-  testRotationFunctions();
-  dTestMatrixComparison();
-  dTestSolveLCP();*/
-  // dTestDataStructures();
-  fat_matrix(1000);
-//  dCloseODE();
+  // testPlaneSpace();
+  // testMatrixMultiply();
+  // testSmallMatrixMultiply();
+  // testCholeskyFactorization();
+  // testCholeskySolve();
+  // testInvertPDMatrix();   // single test OK, not failed with others...
+  // testIsPositiveDefinite(); // failed
+  // testFastLDLTFactorization();
+  // testSolveLDLT();          // single test OK, not failed with others...
+  // testLDLTAddTL();
+  // testLDLTRemove();
+  // testMassFunctions();      // failed (last 2 piece)
+  // testRtoQandQtoR();
+
+  // testQuaternionMultiply();
+  // testRotationFunctions();
+  // dTestMatrixComparison();
+  // dTestSolveLCP();
+  // dTestDataStructures();      // Segmentation fault
+  // fat_matrix(1000);
+
+
+  // ===========================================
+  // = PROBLEMS FUNCTIONS
+  // ===========================================
+  // testInvertPDMatrix();
+  // testIsPositiveDefinite();
+  // testSolveLDLT();
+  // testMassFunctions();
+  dTestDataStructures();
+
+  dCloseODE();
   return 0;
 }

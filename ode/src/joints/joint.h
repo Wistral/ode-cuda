@@ -140,6 +140,18 @@ struct dxJoint : public dObject
 
 struct dxJointGroup : public dBase
 {
+    template<class T>
+    T *alloc(dWorldID w)
+    {
+        T *j = (T *)stack.alloc(sizeof(T));
+        if (j != NULL) {
+            ++num;
+            new(j) T(w);
+            j->flags |= dJOINT_INGROUP;
+        }
+        return j;
+    }
+
     int num;        // number of joints on the stack
     dObStack stack; // a stack of (possibly differently sized) dxJoint
 };                  // objects.
@@ -167,7 +179,7 @@ struct dxJointLimitMotor
 };
 
 
-
+void removeJointFromList (dxJoint* obj);
 
 
 

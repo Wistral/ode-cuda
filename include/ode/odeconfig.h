@@ -87,5 +87,6 @@
   #endif
 #endif
 
+#define NULL nullptr
 
 #endif

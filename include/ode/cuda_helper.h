@@ -10,9 +10,6 @@ extern "C" {
 #define RM_STRUCT(X) \
 typedef struct X X;
 
-RM_STRUCT(dxBody);
-RM_STRUCT(dxJoint);
-RM_STRUCT(dxWorld);
 
 ODE_API void cuda_testMemcpy();
 

@@ -36,7 +36,6 @@ transform is the identity.
 #include "joint.h"
 #include "joint_internal.h"
 
-extern void addObjectToList( dObject *obj, dObject **first );
 
 dxJoint::dxJoint( dxWorld *w ) :
         dObject( w )
@@ -52,7 +51,7 @@ dxJoint::dxJoint( dxWorld *w ) :
     node[1].next = 0;
     dSetZero( lambda, 6 );
 
-    addObjectToList( this, ( dObject ** ) &w->firstjoint );
+    addObjectToList( this, &(w->firstjoint) );
 
     w->nj++;
     feedback = 0;
@@ -720,6 +719,23 @@ int dxJointLimitMotor::addLimot( dxJoint *joint,
     else return 0;
 }
 
+void removeJointFromList (dxJoint* obj)
+{
+  dAASSERT(obj);
+
+  if (obj->next) obj->next->tome = obj->tome;
+  
+  if (obj->tome != (dObject**) & (obj->world->firstjoint))
+    *(obj->tome) = obj->next;
+  else{
+    // side affect on world->firstjoint
+    obj->world->firstjoint = (dxJoint*) (obj->next);
+  }
+
+  // safeguard
+  obj->next = nullptr;
+  obj->tome = nullptr;
+}
 
 
 // Local Variables:

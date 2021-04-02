@@ -91,5 +91,6 @@ void * dRealloc (void *ptr, size_t oldsize, size_t newsize)
 void dFree (void *ptr, size_t size)
 {
   if (!ptr) return;
-  if (freefn) freefn (ptr,size); else free (ptr);
+  // if (freefn) freefn (ptr,size); else 
+  free (ptr);
 }

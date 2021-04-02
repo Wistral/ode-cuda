@@ -157,5 +157,70 @@ struct dxWorld : public dBase {
   dReal max_angular_speed;      // limit the angular velocity to this magnitude
 };
 
+// add an object `obj' to the list who's head pointer is pointed to by `first'.
+template<typename Tp>
+void addObjectToList (Tp obj, Tp* first)
+{
+  obj->next = decltype(obj->next) (*first);
+  obj->tome = decltype(obj->tome) (first);
+  if (*first) (*first)->tome = &obj->next;
+  (*first) = obj;
+}
+
+// see if an object list loops on itself (if so, it's bad).
+template<typename Tp>
+int listHasLoops (Tp first)
+{
+  if (!first || !first->next) return 0;
+  Tp a=first;
+  dObject* b=first->next;
+  int skip=0;
+  while (b) {
+    if ((dObject*)a==b) return 1;
+    b = b->next;
+    if (skip) a = (Tp)(a->next);
+    skip ^= 1;
+  }
+  return 0;
+}
+
+template<typename Tp>
+bool _hasLoop(Tp p){
+  Tp head = p;
+  while(p && p->next){
+    p = (Tp) (p->next);
+    if (p == head)
+      return true;
+  }
+  return false;
+}
+
+#define _dbg_assert(x) if(not (x)) exit(1);
+#define msg_assert(x, msg) \
+if(not (x)){printf(msg "\n"); exit(1);}
+
+#define fmt_assert(x, fmt, msg) \
+if(not (x)){printf(fmt "\n", msg); exit(1);}
+
+template<typename Tp1,typename Tp2>
+bool cmp_ptr(Tp1 p1, Tp2 p2){
+  auto u2 = static_cast<Tp1>(p2);
+  return p1 == u2;
+}
+
+// #define PTR_REASSIGN
+
+// remove the object from the linked list
+template<typename Tp=dObject*>
+void removeObjectFromList (Tp obj)
+{
+  dAASSERT(obj);
+  if (obj->next) obj->next->tome = obj->tome;
+  *(obj->tome) = obj->next;
+
+  // safeguard
+  obj->next = nullptr;
+  obj->tome = nullptr;
+}
 
 #endif

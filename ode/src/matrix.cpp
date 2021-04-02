@@ -49,75 +49,70 @@ void dSetValue (dReal *a, int n, dReal value)
 }
 
 
-void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p, int q, int r)
+void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r)
 {
-  int i,j,k,qskip,rskip,rpad;
-  dAASSERT (A && B && C && p>0 && q>0 && r>0);
-  //qskip = dPAD(q);
-  //rskip = dPAD(r);
-  qskip = q;
-  rskip = r;
-  rpad = rskip - r;
-  dReal sum;
-  const dReal *b,*c,*bb;
-  bb = B;
-  for (i=p; i; i--) {
-    for (j=0 ; j<r; j++) {
-      c = C + j;
-      b = bb;
-      sum = 0;
-      for (k=q; k; k--, c+=rskip) sum += (*(b++))*(*c);
-      *(A++) = sum; 
+    dAASSERT (A && B && C && p>0 && q>0 && r>0);
+    const unsigned qskip = dPAD(q);
+    const unsigned rskip = dPAD(r);
+    dReal *aa = A;
+    const dReal *bb = B;
+    for (unsigned i = p; i != 0; aa+=rskip, bb+=qskip, --i) {
+        dReal *a = aa;
+        const dReal *cc = C, *ccend = C + r;
+        for (; cc != ccend; ++a, ++cc) {
+            dReal sum = REAL(0.0);
+            const dReal *c = cc;
+            const dReal *b = bb, *bend = bb + q;
+            for (; b != bend; c+=rskip, ++b) {
+                sum += (*b) * (*c);
+            }
+            (*a) = sum; 
+        }
     }
-    A += rpad;
-    bb += qskip;
-  }
 }
 
 
 void dMultiply1 (dReal *A, const dReal *B, const dReal *C, int p, int q, int r)
 {
-  int i,j,k,pskip,rskip;
-  dReal sum;
-  dAASSERT (A && B && C && p>0 && q>0 && r>0);
-  //pskip = dPAD(p);
-  //rskip = dPAD(r);
-  pskip = p;
-  rskip = r;
-  for (i=0; i<p; i++) {
-    for (j=0; j<r; j++) {
-      sum = 0;
-      for (k=0; k<q; k++) sum += B[i+k*pskip] * C[j+k*rskip];
-      A[i*rskip+j] = sum;
+    dAASSERT (A && B && C && p>0 && q>0 && r>0);
+    const unsigned pskip = dPAD(p);
+    const unsigned rskip = dPAD(r);
+    dReal *aa = A;
+    const dReal *bb = B, *bbend = B + p;
+    for (; bb != bbend; aa += rskip, ++bb) {
+        dReal *a = aa;
+        const dReal *cc = C, *ccend = C + r;
+        for (; cc != ccend; ++a, ++cc) {
+            dReal sum = REAL(0.0);
+            const dReal *b = bb, *c = cc;
+            for (unsigned k = q; k != 0; b += pskip, c += rskip, --k) {
+                sum += (*b) * (*c);
+            }
+            (*a) = sum;
+        }
     }
-  }
 }
 
 
 void dMultiply2 (dReal *A, const dReal *B, const dReal *C, int p, int q, int r)
 {
-  int i,j,k,z,rpad,qskip;
-  dReal sum;
-  const dReal *bb,*cc;
-  dAASSERT (A && B && C && p>0 && q>0 && r>0);
-  //rpad = dPAD(r) - r;
-  //qskip = dPAD(q);
-  //rpad = r;
-  rpad = 0;
-  qskip = q;
-  bb = B;
-  for (i=p; i; i--) {
-    cc = C;
-    for (j=r; j; j--) {
-      z = 0;
-      sum = 0;
-      for (k=q; k; k--,z++) sum += bb[z] * cc[z];
-      *(A++) = sum; 
-      cc += qskip;
+    dAASSERT (A && B && C && p>0 && q>0 && r>0);
+    const unsigned rskip = dPAD(r);
+    const unsigned qskip = dPAD(q);
+    dReal *aa = A;
+    const dReal *bb = B;
+    for (unsigned i = p; i != 0; aa += rskip, bb += qskip, --i) {
+        dReal *a = aa, *aend = aa + r;
+        const dReal *cc = C;
+        for (; a != aend; cc+=qskip, ++a) {
+            dReal sum = REAL(0.0);
+            const dReal *b = bb, *c = cc, *cend = cc + q;
+            for (; c != cend; ++b, ++c) {
+                sum += (*b) * (*c);
+            }
+            (*a) = sum; 
+        }
     }
-    A += rpad;
-    bb += qskip;
-  }
 }
 
 
@@ -144,7 +139,10 @@ int dFactorCholesky (dReal *A, int n)
     sum = *cc;
     a = aa;
     for (k=i; k; k--, a++) sum -= (*a)*(*a);
-    if (sum <= REAL(0.0)) return 0;
+    if (sum <= REAL(0.0)){ 
+      printf("%s() sum negative!\n", __FUNCTION__ );
+      return 0;
+    }
     *cc = dSqrt(sum);
     recip[i] = dRecip (*cc);
     aa += nskip;
