@@ -154,8 +154,8 @@ void Block::Create(const dVector3 Center, const dVector3 Extents, Block* Parent,
 				int Index = i * SPLITAXIS + j;
 
 				dVector3 ChildCenter;
-				ChildCenter[AXIS0] = Center[AXIS0] - Extents[AXIS0] + ChildExtents[AXIS0] + i * (ChildExtents[AXIS0] * 2);
-				ChildCenter[AXIS1] = Center[AXIS1] - Extents[AXIS1] + ChildExtents[AXIS1] + j * (ChildExtents[AXIS1] * 2);
+				ChildCenter[AXIS0] = dReal( Center[AXIS0] - Extents[AXIS0] + ChildExtents[AXIS0] + i * (ChildExtents[AXIS0] * 2.));
+				ChildCenter[AXIS1] = dReal( Center[AXIS1] - Extents[AXIS1] + ChildExtents[AXIS1] + j * (ChildExtents[AXIS1] * 2.));
 				ChildCenter[UP] = Center[UP];
 				
 				Children[Index].Create(ChildCenter, ChildExtents, this, Depth - 1, Blocks);

@@ -488,7 +488,7 @@ void dxHashSpace::collide (void *data, dNearCallback *callback)
     if (prime[i] >= (8*n)) break;
   }
   if (i >= NUM_PRIMES) i = NUM_PRIMES-1;	// probably pointless
-  int sz = prime[i];
+  int sz = (int) prime[i];
 
   // allocate and initialize hash table node pointers
   Node **table = (Node **) ALLOCA (sizeof(Node*) * sz);
@@ -542,11 +542,11 @@ void dxHashSpace::collide (void *data, dNearCallback *callback)
 		unsigned char mask;
 		if (aabb->index <= node->aabb->index) {
 		  i = (aabb->index * tested_rowsize)+(node->aabb->index >> 3);
-		  mask = 1 << (node->aabb->index & 7);
+		  mask = (unsigned char) (1 << (node->aabb->index & 7));
 		}
 		else {
 		  i = (node->aabb->index * tested_rowsize)+(aabb->index >> 3);
-		  mask = 1 << (aabb->index & 7);
+		  mask = (unsigned char) (1 << (aabb->index & 7));
 		}
 		dIASSERT (i >= 0 && i < (tested_rowsize*n));
 		if ((tested[i] & mask)==0) {

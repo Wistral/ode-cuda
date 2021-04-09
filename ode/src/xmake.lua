@@ -87,7 +87,7 @@ add_files(
 
 )
 add_cuflags("-g")
-add_cxxflags("-g")
+add_cxxflags("-g", "-Werror", "-Wconversion", "-Waddress")
 add_cxflags("-g")
 add_includedirs(
     "."

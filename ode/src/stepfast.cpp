@@ -659,7 +659,7 @@ dInternalStepIslandFast (dxWorld * world, dxBody * const *bodies, int nb, dxJoin
 	dReal *GIPair[2], *GinvIPair[2];
 	dxJoint *joint;
 	int iter, b, j, i;
-	dReal ministep = stepsize / maxiterations;
+	dReal ministep = stepsize / dReal(maxiterations);
 
 	// make a local copy of the joint array, because we might want to modify it.
 	// (the "dxJoint *const*" declaration says we're allowed to modify the joints

@@ -45,6 +45,9 @@ function _add_target(t)
     set_kind("binary")
     add_cxxflags("-g")
     add_cuflags("-g")
+    add_ldflags(
+        "-ldl", "-lrt"
+    )
 
     add_defines(
         "DRAWSTUFF_TEXTURE_PATH=\"$(projectdir)/drawstuff/textures\""

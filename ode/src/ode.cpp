@@ -1276,7 +1276,7 @@ void dJointGroupEmpty (dJointGroupID group)
     dxJoint *j = (dxJoint*) group->stack.rewind();
     for (i=0; i < group->num; i++) {
         jlist[i] = j;
-        j = (dxJoint*) (group->stack.next (j->size()));
+        j = (dxJoint*) (group->stack.next ((int)j->size()));
     }
     for (i=group->num-1; i >= 0; i--) {
         if (jlist[i]->world) {
@@ -1938,7 +1938,7 @@ extern "C" void dTestDataStructures()
       dBodyID b1 = body [dRand() % nb];
       dBodyID b2 = body [dRand() % nb];
       if (b1 != b2) {
-	int k = dRand() % nj;
+	int k = int (dRand() % nj);
 	DO(printf ("reattaching joint %p\n",joint[k]));
 	dJointAttach (joint[k],b1,b2);
 	checkWorld (w);
@@ -1946,7 +1946,7 @@ extern "C" void dTestDataStructures()
       }
     }
     if (nb > 0 && dRandReal() > 0.5) {
-      int k = dRand() % nb;
+      int k = int (dRand() % nb);
       DO(printf ("destroying body %p\n",body[k]));
       dBodyDestroy (body[k]);
       checkWorld (w);
@@ -1955,7 +1955,7 @@ extern "C" void dTestDataStructures()
       DO(printf ("%d BODIES, %d JOINTS\n",nb,nj));
     }
     if (nj > 0 && dRandReal() > 0.5) {
-      int k = dRand() % nj;
+      int k = int (dRand() % nj);
       DO(printf ("destroying joint %p\n",joint[k]));
       dJointDestroy (joint[k]);
       checkWorld (w);

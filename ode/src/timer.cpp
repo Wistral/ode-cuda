@@ -212,7 +212,7 @@ static inline void serialize()
 
 static inline double loadClockCount (unsigned long a[2])
 {
-  return a[1]*1.0e6 + a[0];
+  return double (a[1])*1e6 + double (a[0]);
 }
 
 
