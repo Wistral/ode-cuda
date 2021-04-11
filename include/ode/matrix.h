@@ -67,9 +67,9 @@ void dMultidot2 (const dReal *a0, const dReal *a1,
  * B or C are stored in standard column format.
  */
 
-ODE_API void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r);
-ODE_API void dMultiply1 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r);
-ODE_API void dMultiply2 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r);
+ODE_API void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad=true);
+ODE_API void dMultiply1 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad=true);
+ODE_API void dMultiply2 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad=true);
 
 
 /* do an in-place cholesky decomposition on the lower triangle of the n*n

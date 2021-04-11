@@ -14,6 +14,7 @@ typedef struct X X;
 ODE_API void cuda_testMemcpy();
 
 ODE_API dReal *cuda_copyToDevice(dReal *a, int n);
+ODE_API dReal *cuda_copyPaddedToDevice(dReal *a, int dim);
 ODE_API dReal *cuda_copyFromDevice(dReal *dev_a, dReal *a, int n);
 ODE_API void cuda_freeFromDevice(dReal *dev_a);
 ODE_API dReal *cuda_makeOnDevice(int n);

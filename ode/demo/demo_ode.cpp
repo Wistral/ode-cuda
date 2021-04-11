@@ -97,13 +97,14 @@ void myMessageFunction (int num, const char *msg, va_list ap)
 // ulp: units in the last place.
 template <typename T, typename T2>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
-IsAlmostEqual(T x, T2 y, int ulp = 2) {
+IsAlmostEqual(T x, T2 y, int ulp = 2, double _EPSILON = 1e-5) {
   // the machine epsilon has to be scaled to the magnitude of the values used
   // and multiplied by the desired precision in ULPs (units in the last place)
-  return std::fabs(x - y) <
-             std::numeric_limits<T>::epsilon() * std::fabs(x + y) * ulp
-         // unless the result is subnormal
-         || std::fabs(x - y) < std::numeric_limits<T>::min();
+  auto cp = std::numeric_limits<T>::epsilon() * std::fabs(x + y) * ulp;
+  return std::fabs(x - y) < cp             
+    // unless the result is subnormal
+    || std::fabs(x - y) < std::numeric_limits<T>::min()
+    || std::fabs(x - y) < _EPSILON;
 }
 
 #define cmp IsAlmostEqual
@@ -411,8 +412,19 @@ void testInvertPDMatrix()
   dReal A[MSIZE4*MSIZE], Ainv[MSIZE4*MSIZE], I[MSIZE4*MSIZE];
   HEADER;
 
+  dAASSERT(cmp(std::numeric_limits<dReal>::min(), 0));
+  // dAASSERT(cmp(0., 0.));
+  // dAASSERT(cmp(1e-7, 0));
+  // dAASSERT(cmp(1e-8, 0));
+
+
+#define showMat(MAT) \
+  printMatrixf(#MAT, MAT, MSIZE,MSIZE4)
+
   dMakeRandomMatrix (A,MSIZE,MSIZE,1.0);
+  showMat(A);
   dMultiply2 (Ainv,A,A,MSIZE,MSIZE,MSIZE);
+  showMat(Ainv);
   memcpy (A,Ainv,MSIZE4*MSIZE*sizeof(dReal));
   dSetZero (Ainv,MSIZE4*MSIZE);
 
@@ -420,15 +432,19 @@ void testInvertPDMatrix()
     printf ("\tpassed (1)\n"); else printf ("\tFAILED (1)\n");
   dMultiply0 (I,A,Ainv,MSIZE,MSIZE,MSIZE);
 
+  showMat(I);
   // compare with identity
   ok = 1;
   for (i=0; i<MSIZE; i++) {
     for (j=0; j<MSIZE; j++) {
-      if (i != j) if (cmp (I[i*MSIZE4+j],0.0)==0) ok = 0;
+      auto ret = cmp (I[i*MSIZE4+j],0.);
+      if (i != j && !ret)
+        ok = 0;
     }
   }
   for (i=0; i<MSIZE; i++) {
-    if (cmp (I[i*MSIZE4+i],1.0)==0) ok = 0;
+    if (!cmp (I[i*MSIZE4+i],1))
+      ok = 0;
   }
   if (ok) printf ("\tpassed (2)\n"); else printf ("\tFAILED (2)\n");
 }
@@ -1176,11 +1192,12 @@ int main(int argc, char *argv[])
   // ===========================================
   // = PROBLEMS FUNCTIONS
   // ===========================================
-  // testInvertPDMatrix();
+  // testInvertPDMatrix(); // ok
   // testIsPositiveDefinite();
+
   // testSolveLDLT();
   // testMassFunctions();
-  dTestDataStructures();
+  // dTestDataStructures();
 
   dCloseODE();
   return 0;

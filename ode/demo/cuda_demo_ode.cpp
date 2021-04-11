@@ -29,7 +29,8 @@
 #pragma warning(disable:4244 4305)  // for VC++, no precision loss complaints
 #endif
 
-
+#define log(FMT, VAR) printf(#VAR "= " FMT "\n", VAR)
+#define ShowMat0f(MAT, X, Y) printMatrix0f(#MAT, MAT, (X), (Y))
 //****************************************************************************
 // matrix accessors
 
@@ -58,6 +59,12 @@ const double tol = 1e-5;
 #endif
 
 static jmp_buf jump_buffer;
+
+
+template<typename T>
+bool cmpNum(T n1, T n2){
+  return std::fabs(n1-n2) < 1e-5;
+}
 
 
 void myMessageFunction (int num, const char *msg, va_list ap)
@@ -128,6 +135,16 @@ void testRandomNumberGenerator()
 }
 
 
+void testdRandReal()
+{
+  HEADER;
+  int i;
+  for(i=0;i<20;++i){
+    printf("RandReal=%f\n",dRandReal());
+  }
+}
+
+
 void testInfinity()
 {
   HEADER;
@@ -147,6 +164,8 @@ void testPad()
 	  "FAILED" : "passed");
 }
 
+#define ShowMat(MAT, X, Y) printMatrixf(#MAT, MAT, (X), (Y))
+#define ShowV3(MAT) ShowMat(MAT, 3, 1)
 
 void testCrossProduct()
 {
@@ -162,6 +181,9 @@ void testCrossProduct()
   dSetZero (B,12);
   dCROSSMAT (B,b,4,+,-);
   dMultiply0 (a2,B,c,3,3,1);
+  ShowMat(B,3,3);
+  ShowV3(c);
+  ShowV3(a2);
 
   dReal diff = dMaxDifference(a1,a2,3,1);
   printf ("\t%s\n", diff > tol ? "FAILED" : "passed");
@@ -205,18 +227,16 @@ void testNormalize3()
 }
 
 
-/*
-void testReorthonormalize()
-{
-  HEADER;
-  dMatrix3 R,I;
-  dMakeRandomMatrix (R,3,3,1.0);
-  for (int i=0; i<30; i++) dReorthonormalize (R);
-  dMultiply2 (I,R,R,3,3,3);
-  printf ("\t%s\n",cmpIdentityMat3 (I) ? "passed" : "FAILED");
-}
-*/
 
+// void testReorthonormalize()
+// {
+//   HEADER;
+//   dMatrix3 R,I;
+//   dMakeRandomMatrix (R,3,3,1.0);
+//   for (int i=0; i<30; i++) dReorthonormalize (R);
+//   dMultiply2 (I,R,R,3,3,3);
+//   printf ("\t%s\n",cmpIdentityMat3 (I) ? "passed" : "FAILED");
+// }
 
 void testPlaneSpace()
 {
@@ -270,23 +290,23 @@ void testMatrixMultiply()
   for (i=0; i<12; i++) host_B2[i+i/3] = host_B[i];
   dReal *B2 = cuda_copyToDevice(host_B2, 16);
 
-  dMultiply0 (ode_C,host_A,host_B,2,3,4);
+  ShowMat0f(host_A,2,3);
+  ShowMat0f(host_B,3,4);
+#define printMatrix printMatrix0f
+  dMultiply0 (ode_C,host_A,host_B,2,3,4,false);
   printMatrix("C_ODE", ode_C, 2, 4);
-  if (ode_C[0] != 116 || ode_C[1] != 125 || ode_C[2] != 134 || ode_C[3] != 143 ||
-      ode_C[4] != 224 || ode_C[5] != 242 || ode_C[6] != 260 || ode_C[7] != 278)
-    printf ("\tFAILED (1)\n"); else printf ("\tpassed (1)\n");
+  
 
   cuda_dMultiply0 (C,A,B,2,3,4);
   cuda_copyFromDevice(C, host_C, 8);
   printMatrix("C_CUD", host_C, 2, 4);
-  if (host_C[0] != 116 || host_C[1] != 125 || host_C[2] != 134 || host_C[3] != 143 ||
-      host_C[4] != 224 || host_C[5] != 242 || host_C[6] != 260 || host_C[7] != 278)
-    printf ("\tFAILED (1)\n"); else printf ("\tpassed (1)\n");
+  for(i=0;i<8;++i){assert( cmpNum(ode_C[i], host_C[i]) );}
+  printf ("\tpassed (1)\n");
 
   printMatrix("A2", host_A2, 3, 2);
   printMatrix("B", host_B, 3, 4);
 
-  dMultiply1 (ode_C,host_A2,host_B,2,3,4);
+  dMultiply1 (ode_C,host_A2,host_B,2,3,4,false);
   printMatrix("C_ODE", ode_C, 2, 4);
   if (ode_C[0] != 160 || ode_C[1] != 172 || ode_C[2] != 184 || ode_C[3] != 196 ||
       ode_C[4] != 196 || ode_C[5] != 211 || ode_C[6] != 226 || ode_C[7] != 241)
@@ -295,23 +315,18 @@ void testMatrixMultiply()
   cuda_dMultiply1 (C,A2,B,2,3,4);
   cuda_copyFromDevice(C, host_C, 8);
   printMatrix("C_CUD", host_C, 2, 4);
-  if (host_C[0] != 160 || host_C[1] != 172 || host_C[2] != 184 || host_C[3] != 196 ||
-      host_C[4] != 196 || host_C[5] != 211 || host_C[6] != 226 || host_C[7] != 241)
-    printf ("\tFAILED (2)\n"); else printf ("\tpassed (2)\n");
+  for(i=0;i<8;++i){assert( cmpNum(ode_C[i], host_C[i]) );}
+  printf ("\tpassed (2)\n");
 
-  dMultiply2 (ode_C,host_A,host_B2,2,3,4);
+  dMultiply2 (ode_C,host_A,host_B2,2,3,4,false);
   printMatrix("C_ODE", ode_C, 2, 4);
-  if (ode_C[0] != 83 || ode_C[1] != 110 || ode_C[2] != 137 || ode_C[3] != 164 ||
-      ode_C[4] != 164 || ode_C[5] != 218 || ode_C[6] != 272 || ode_C[7] != 326)
-    printf ("\tFAILED (3)\n"); else printf ("\tpassed (3)\n");
 
   cuda_dMultiply2 (C,A,B2,2,3,4);
   cuda_copyFromDevice(C, host_C, 8);
   printMatrix("C_CUD", host_C, 2, 4);
-  if (host_C[0] != 83 || host_C[1] != 110 || host_C[2] != 137 || host_C[3] != 164 ||
-      host_C[4] != 164 || host_C[5] != 218 || host_C[6] != 272 || host_C[7] != 326)
-    printf ("\tFAILED (3)\n"); else printf ("\tpassed (3)\n");
-
+  for(i=0;i<8;++i){assert( cmpNum(ode_C[i], host_C[i]) );}
+  printf ("\tpassed (3)\n");
+#undef printMatrix
 	cuda_freeFromDevice(A);
 	cuda_freeFromDevice(B);
 	cuda_freeFromDevice(A2);
@@ -319,31 +334,44 @@ void testMatrixMultiply()
 	cuda_freeFromDevice(C);
 }
 
+#define ShowPMat(MAT, X, Y) printPaddedMatrixf(#MAT, MAT, (X), (Y))
 void testMatrixMultiply3()
 {
-	int dim = 1000;
-	dReal A[dim * dim], B[dim * dim], C[dim * dim], host_C[dim * dim];
-	for (int i = 0; i < dim * dim; ++i) { A[i] = i; }
-	printMatrix("A", A, dim, dim);
-	makeIdMatrix(B, dim, 1);
-	printMatrix("B", B, dim, dim);
-	dSetZero(C, dim * dim);
-	printMatrix("C", C, dim, dim);
-	dReal *dev_A = cuda_copyToDevice(A, dim * dim);
-	dReal *dev_B = cuda_copyToDevice(B, dim * dim);
-	dReal *dev_C = cuda_copyToDevice(C, dim * dim);
+	const int dim = 3;
+  using Mat3 = dReal[dPAD(dim)*dPAD(dim)];
+  Mat3 A, B, C, host_C;
+  const dReal *C_on_CUDA = host_C, *C_ODE=C;
+	for (int i = 0; i < dim * dim; ++i) { A[i + i / dim] = i; }
+	makeIdMatrix(B, dim+1, 1);
+	dSetZero(C, (dim+1) * (dim+1));
+	
+  ShowPMat(A,3,3);
+  ShowPMat(B,3,3);
+  ShowPMat(C,3,3);
+
+	dReal *dev_A = cuda_copyPaddedToDevice(A, dim);
+	dReal *dev_B = cuda_copyPaddedToDevice(B, dim);
+	dReal *dev_C = cuda_copyPaddedToDevice(C, dim);
+
+  // with ODE
+  // C = A * B
 	dMultiply0(C, A, B, dim, dim, dim);
-	printMatrix("C_ODE", C, dim, dim);
+  ShowPMat(C,3,3);
+
+  // with CUDA
+  // dev_C = dev_A * dev_B
 	cuda_dMultiply0(dev_C, dev_A, dev_B, dim, dim, dim);
 	cuda_copyFromDevice(dev_C, host_C, dim * dim);
-	printMatrix("C_CUD", host_C, dim, dim);
+  ShowMat(host_C,3,3);
 	cuda_freeFromDevice(dev_A);
 	cuda_freeFromDevice(dev_B);
 	cuda_freeFromDevice(dev_C);
+
 	for (int i=0; i<dim * dim; i++) {
-		assert(C[i] == host_C[i]);
+		assert(C[(i/dim)*dPAD(dim)+i%dim] == host_C[i]);
 	}
 }
+
 
 void testMatrixMultiply4()
 {
@@ -355,19 +383,19 @@ void testMatrixMultiply4()
 	int col = 2;
 	dReal A[q * p], B[q * r], C[p * r], host_C[p * r];
 	for (int i = 0; i < q * p; ++i) { A[i] = i+1; }
-	printMatrix("A", A, q, p);
 	for (int i = 0; i < q * r; ++i) { B[i] = i+1; }
-	printMatrix("B", B, q, r);
+  ShowMat0f(A,q,p);
+  ShowMat0f(B,q,r);
 	dSetZero(C, p * r);
-	printMatrix("C", C, p, r);
+	ShowMat0f(C,p,r);
 	dReal *dev_A = cuda_copyToDevice(A, q * p);
 	dReal *dev_B = cuda_copyToDevice(B, q * r);
 	dReal *dev_C = cuda_copyToDevice(C, p * r);
-	dMultiply2(C, A, B, p, q, r);
-	printMatrix("C_ODE", C, p, r);
+	dMultiply2(C, A, B, p, q, r, false);
+  printMatrix0f("C_ODE", C, (p), (r));
 	cuda_dMultiply2(dev_C, dev_A, dev_B, p, q, r);
 	cuda_copyFromDevice(dev_C, host_C, p * r);
-	printMatrix("C_CUD", host_C, p, r);
+	printMatrix0f("C_CUD", host_C, p, r);
 	cuda_freeFromDevice(dev_A);
 	cuda_freeFromDevice(dev_B);
 	cuda_freeFromDevice(dev_C);
@@ -382,19 +410,19 @@ void testMatrixMultiply5()
 	int col = 2;
 	dReal A[9 * 17], B[17 * 25], C[9 * 25], host_C[9 * 25];
 	for (int i = 0; i < 9 * 17; ++i) { A[i] = i+1; }
-	printMatrix("A", A, 9, 17);
+	printMatrix0f("A", A, 9, 17);
 	for (int i = 0; i < 17 * 25; ++i) { B[i] = i+1; }
-	printMatrix("B", B, 17, 25);
+	printMatrix0f("B", B, 17, 25);
 	dSetZero(C, 9 * 25);
-	printMatrix("C", C, 9, 25);
+	printMatrix0f("C", C, 9, 25);
 	dReal *dev_A = cuda_copyToDevice(A, 9 * 17);
 	dReal *dev_B = cuda_copyToDevice(B, 17 * 25);
 	dReal *dev_C = cuda_copyToDevice(C, 9 * 25);
 	dMultiply0(C, A, B, 9, 17, 25);
-	printMatrix("C_ODE", C, 9, 25);
+	printMatrix0f("C_ODE", C, 9, 25);
 	cuda_dMultiply0(dev_C, dev_A, dev_B, 9, 17, 25);
 	cuda_copyFromDevice(dev_C, host_C, 9 * 25);
-	printMatrix("C_CUD", host_C, 9, 25);
+	printMatrix0f("C_CUD", host_C, 9, 25);
 	cuda_freeFromDevice(dev_A);
 	cuda_freeFromDevice(dev_B);
 	cuda_freeFromDevice(dev_C);
@@ -1136,10 +1164,8 @@ void dMatrixComparison::dump()
 //****************************************************************************
 // unit test
 
-#include <setjmp.h>
-
+// #include <setjmp.h>
 // static jmp_buf jump_buffer;
-
 static void myDebug (int num, const char *msg, va_list ap)
 {
   // printf ("(Error %d: ",num);
@@ -1246,37 +1272,42 @@ extern "C" void dTestSolveLCP();
 
 int main(int argc, char *argv[])
 {
-//  dInitODE();
-/*  testRandomNumberGenerator();
-  testInfinity();
-  testPad();
-  testCrossProduct();
-  testSetZero();
-  testNormalize3();
-  //testReorthonormalize();     ... not any more
-  testPlaneSpace();*/
-//  testMatrixMultiply3();
-//  testMatrixMultiply4();
-//  testMatrixMultiply5();
-//  testMatrixMultiply();
-// testMatrixMultiply();
-/*  testSmallMatrixMultiply();
-  testCholeskyFactorization();
-  testCholeskySolve();
-  testInvertPDMatrix();
-  testIsPositiveDefinite();
-  testFastLDLTFactorization();
-  testSolveLDLT();
-  testLDLTAddTL();
-  testLDLTRemove();
-  testMassFunctions();
-  testRtoQandQtoR();
-  testQuaternionMultiply();
-  testRotationFunctions();
-  dTestMatrixComparison();
-  dTestSolveLCP();*/
+  dInitODE();
+
+  // testRandomNumberGenerator();
+  // testdRandReal();
+  // testInfinity();
+  // testPad();
+  // testCrossProduct();
+  // testSetZero();
+  // testNormalize3();
+  // // testReorthonormalize();     //... not any more
+  // testPlaneSpace();
+  // testMatrixMultiply3();
+  // testMatrixMultiply4();
+  // testMatrixMultiply5(); 
+  // testMatrixMultiply();
+
+// ======= BELOWS NOT TESTED/PASSED ========================================
+
+  
+  // testSmallMatrixMultiply();
+  // testCholeskyFactorization();
+  // testCholeskySolve();
+  // testInvertPDMatrix();
+  // testIsPositiveDefinite();
+  // testFastLDLTFactorization();
+  // testSolveLDLT();
+  // testLDLTAddTL();
+  // testLDLTRemove();
+  // testMassFunctions();
+  // testRtoQandQtoR();
+  // testQuaternionMultiply();
+  // testRotationFunctions();
+  // dTestMatrixComparison();
+  // dTestSolveLCP();
   // dTestDataStructures();
-  fat_matrix(1000);
-//  dCloseODE();
+  // fat_matrix(1000);
+  dCloseODE();
   return 0;
 }

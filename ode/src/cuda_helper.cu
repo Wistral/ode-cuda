@@ -56,6 +56,19 @@ ODE_API dReal *cuda_copyToDevice(dReal *a, int n)
 	return dev_a;
 }
 
+ODE_API dReal *cuda_copyPaddedToDevice(dReal *a, int dim)
+{
+	dReal *dev_a;
+	int i;
+	cudaMalloc((void**) &dev_a, sizeof(dReal)*dim*dim);
+	cuda_checkError("malloc");
+	for(i=0;i<dim;++i)
+		cudaMemcpy(dev_a+dim*i, a+dPAD(dim)*i, sizeof(dReal)*dim, cudaMemcpyHostToDevice);
+	cuda_checkError("memcpy h to d");
+	return dev_a;
+}
+
+
 ODE_API dReal *cuda_copyFromDevice(dReal *dev_a, dReal *a, int n)
 {
 	cudaMemcpy(a, dev_a, sizeof(dReal)*n, cudaMemcpyDeviceToHost);

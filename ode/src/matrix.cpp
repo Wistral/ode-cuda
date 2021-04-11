@@ -49,11 +49,11 @@ void dSetValue (dReal *a, int n, dReal value)
 }
 
 
-void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r)
+void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad)
 {
     dAASSERT (A && B && C && p>0 && q>0 && r>0);
-    const unsigned qskip = dPAD(q);
-    const unsigned rskip = dPAD(r);
+    const unsigned rskip = pad ? dPAD(r) : r;
+    const unsigned qskip = pad ? dPAD(q) : q;
     dReal *aa = A;
     const dReal *bb = B;
     for (unsigned i = p; i != 0; aa+=rskip, bb+=qskip, --i) {
@@ -72,11 +72,11 @@ void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r)
 }
 
 
-void dMultiply1 (dReal *A, const dReal *B, const dReal *C, int p, int q, int r)
+void dMultiply1 (dReal *A, const dReal *B, const dReal *C, int p, int q, int r, bool pad)
 {
     dAASSERT (A && B && C && p>0 && q>0 && r>0);
-    const unsigned pskip = dPAD(p);
-    const unsigned rskip = dPAD(r);
+    const unsigned pskip = pad ? dPAD(p) : p;
+    const unsigned rskip = pad ? dPAD(r) : r;
     dReal *aa = A;
     const dReal *bb = B, *bbend = B + p;
     for (; bb != bbend; aa += rskip, ++bb) {
@@ -94,11 +94,11 @@ void dMultiply1 (dReal *A, const dReal *B, const dReal *C, int p, int q, int r)
 }
 
 
-void dMultiply2 (dReal *A, const dReal *B, const dReal *C, int p, int q, int r)
+void dMultiply2 (dReal *A, const dReal *B, const dReal *C, int p, int q, int r, bool pad)
 {
     dAASSERT (A && B && C && p>0 && q>0 && r>0);
-    const unsigned rskip = dPAD(r);
-    const unsigned qskip = dPAD(q);
+    const unsigned rskip = pad ? dPAD(r) : r;
+    const unsigned qskip = pad ? dPAD(q) : q;
     dReal *aa = A;
     const dReal *bb = B;
     for (unsigned i = p; i != 0; aa += rskip, bb += qskip, --i) {
