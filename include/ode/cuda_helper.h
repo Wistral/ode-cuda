@@ -7,9 +7,13 @@
 extern "C" {
 #endif
 
+#if !defined(__cplusplus)
 #define RM_STRUCT(X) \
 typedef struct X X;
 
+RM_STRUCT(dxBody)
+RM_STRUCT(dxWorld)
+#endif
 
 ODE_API void cuda_testMemcpy();
 

@@ -66,12 +66,20 @@ void dMultidot2 (const dReal *a0, const dReal *a1,
  * case 1,2 are equivalent to saying that the operation is A=B*C but
  * B or C are stored in standard column format.
  */
-
+#if defined(__cplusplus)
 ODE_API void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad=true);
 ODE_API void dMultiply1 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad=true);
 ODE_API void dMultiply2 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad=true);
+#else
+ODE_API void dMultiply0 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad);
+ODE_API void dMultiply1 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad);
+ODE_API void dMultiply2 (dReal *A, const dReal *B, const dReal *C, int p,int q,int r, bool pad);
 
+#define dMultiply0(A, B, C, P, Q, R) dMultiply0((A), (B), (C), (P), (Q), (R), 1) 
+#define dMultiply1(A, B, C, P, Q, R) dMultiply0((A), (B), (C), (P), (Q), (R), 1) 
+#define dMultiply2(A, B, C, P, Q, R) dMultiply0((A), (B), (C), (P), (Q), (R), 1) 
 
+#endif
 /* do an in-place cholesky decomposition on the lower triangle of the n*n
  * symmetric matrix A (which is stored by rows). the resulting lower triangle
  * will be such that L*L'=A. return 1 on success and 0 on failure (on failure

@@ -97,7 +97,7 @@ void myMessageFunction (int num, const char *msg, va_list ap)
 
 int cmp (dReal a, dReal b)
 {
-  return (fabs(a-b) < tol);
+  return (std::fabs(a-b) < tol);
 }
 
 //****************************************************************************
@@ -1287,27 +1287,27 @@ int main(int argc, char *argv[])
   // testMatrixMultiply4();
   // testMatrixMultiply5(); 
   // testMatrixMultiply();
-
-// ======= BELOWS NOT TESTED/PASSED ========================================
-
-  
-  // testSmallMatrixMultiply();
-  // testCholeskyFactorization();
-  // testCholeskySolve();
-  // testInvertPDMatrix();
-  // testIsPositiveDefinite();
-  // testFastLDLTFactorization();
-  // testSolveLDLT();
-  // testLDLTAddTL();
-  // testLDLTRemove();
-  // testMassFunctions();
   // testRtoQandQtoR();
   // testQuaternionMultiply();
   // testRotationFunctions();
   // dTestMatrixComparison();
   // dTestSolveLCP();
-  // dTestDataStructures();
   // fat_matrix(1000);
+  // testSmallMatrixMultiply();
+  // testCholeskyFactorization();
+  // dTestDataStructures();
+  // testSolveLDLT();
+  // testLDLTAddTL();
+  // testLDLTRemove();
+  // testFastLDLTFactorization();
+  // testCholeskySolve();
+
+// ======= BELOWS NOT TESTED/PASSED ========================================
+
+  
+  // testInvertPDMatrix();
+  // testIsPositiveDefinite();
+  testMassFunctions();  
   dCloseODE();
   return 0;
 }

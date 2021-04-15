@@ -89,4 +89,8 @@
 
 #define NULL nullptr
 
+#if !defined(__cplusplus)
+#define bool _Bool
+#endif
+
 #endif

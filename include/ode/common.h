@@ -214,7 +214,9 @@ typedef struct dxGeom *dGeomID;
 typedef struct dxJoint *dJointID;
 typedef struct dxJointGroup *dJointGroupID;
 
-
+#if !defined(__cplusplus)
+typedef struct dxJoint dxJoint;
+#endif
 /* error numbers */
 
 enum {
