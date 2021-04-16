@@ -1281,7 +1281,8 @@ void dJointGroupEmpty (dJointGroupID group)
     for (i=group->num-1; i >= 0; i--) {
         if (jlist[i]->world) {
             removeJointReferencesFromAttachedBodies (jlist[i]);
-            removeObjectFromList (jlist[i]);
+            // removeObjectFromList (jlist[i]);
+            removeJointFromList(jlist[i]);
             jlist[i]->world->nj--;
             jlist[i]->~dxJoint();
         }
