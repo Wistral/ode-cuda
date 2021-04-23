@@ -26,19 +26,19 @@
 //
 // @@@ report MAX error
 
-#include <time.h>
-#include <ode/ode.h>
+#include <drawstuff/drawstuff.h>
 #include <ode/common.h>
 #include <ode/objects.h>
+#include <ode/ode.h>
+#include <time.h>
 #include "../src/objects.h"
-#include <drawstuff/drawstuff.h>
 #include "texturepath.h"
 
 #include <cuda.h>
 #include <ode/cuda_helper.h>
 
 #ifdef _MSC_VER
-#pragma warning(disable:4244 4305)  // for VC++, no precision loss complaints
+#pragma warning(disable : 4244 4305)  // for VC++, no precision loss complaints
 #endif
 
 // select correct drawing functions
@@ -50,25 +50,25 @@
 #define dsDrawCapsule dsDrawCapsuleD
 #endif
 
-
 // some constants
 
-#define NUM 17			// number of bodies
-#define NUMJ 9			// number of joints
-#define SIDE (0.0866)		// side length of a box
-#define MASS (1.0)		// mass of a box
-#define RADIUS (0.0866)	// sphere radius
+#define NUM 17           // number of bodies
+#define NUMJ 9           // number of joints
+#define SIDE (0.0866)    // side length of a box
+#define MASS (1.0)       // mass of a box
+#define RADIUS (0.0866)  // sphere radius
+#define SIMSTEP (0.1)    // simulation step time
 
 static int num = 10;
 
-static bool gfx = false;
-//static bool use_cuda = false;
+static bool gfx = true;
+// static bool use_cuda = false;
 static bool use_cuda = true;
 
 // dynamics and collision objects
 
-static dWorldID world=0;
-//static dBodyID body[num];
+static dWorldID world = 0;
+// static dBodyID body[num];
 static dBodyID *body;
 static dJointID joint[NUMJ];
 
@@ -77,12 +77,18 @@ static dBodyID b_buff;
 
 static int stepcount = 0;
 
-// create the test system
+void body_disp(dBodyID b) {
+  auto pos = dBodyGetPosition(b);
+  auto rot = dBodyGetRotation(b);
+  // dsDrawBox(pos, rot, sides);
+  printf(" pos: (%f,%f,%f)...\t", pos[0], pos[1], pos[2]);
+  printf(" rot: (%f,%f,%f)...\n", rot[0], rot[1], rot[2]);
+}
 
-void createTest()
-{
-  int i,j;
-  if (world) dWorldDestroy (world);
+// create the test system
+void createTest() {
+  int i, j;
+  if (world) dWorldDestroy(world);
 
   world = dWorldCreate();
 
@@ -90,114 +96,194 @@ void createTest()
   const dReal fmass = 0.1;
 
   // create random bodies
-  for (i=0; i<num; i++) {
+  for (i = 0; i < num; i++) {
     // create bodies at random position and orientation
-    body[i] = dBodyCreate (world);
-    dBodySetPosition (body[i],(dRandReal()*2-1),(dRandReal()*2-1),
-		      (dRandReal()*2+RADIUS));
+    body[i] = dBodyCreate(world);
+    dBodySetPosition(body[i], (dRandReal() * 2 - 1), (dRandReal() * 2 - 1),
+                     (dRandReal() * 2 + RADIUS));
     dReal q[4];
-    for (j=0; j<4; j++) q[j] = (dRandReal()*2-1);
-    dBodySetQuaternion (body[i],q);
+    for (j = 0; j < 4; j++) q[j] = (dRandReal() * 2 - 1);
+    dBodySetQuaternion(body[i], q);
 
     // set random velocity
-    dBodySetLinearVel (body[i], scale*(dRandReal()*2-1),scale*(dRandReal()*2-1),
-		       scale*(dRandReal()*2-1));
-    dBodySetAngularVel (body[i], scale*(dRandReal()*2-1),scale*(dRandReal()*2-1),
-			scale*(dRandReal()*2-1));
+    dBodySetLinearVel(body[i], scale * (dRandReal() * 2 - 1),
+                      scale * (dRandReal() * 2 - 1),
+                      scale * (dRandReal() * 2 - 1));
+    dBodySetAngularVel(body[i], scale * (dRandReal() * 2 - 1),
+                       scale * (dRandReal() * 2 - 1),
+                       scale * (dRandReal() * 2 - 1));
 
     // set random mass (random diagonal mass rotated by a random amount)
     dMass m;
     dMatrix3 R;
-    dMassSetBox (&m,1,(fmass+0.1),(fmass+0.1),(fmass+0.1));
-    dMassAdjust (&m,(fmass+1));
-    for (j=0; j<4; j++) q[j] = (fmass*2-1);
-    dQtoR (q,R);
-    dMassRotate (&m,R);
-    dBodySetMass (body[i],&m);
+    dMassSetBox(&m, 1, (fmass + 0.1), (fmass + 0.1), (fmass + 0.1));
+    dMassAdjust(&m, (fmass + 1));
+    for (j = 0; j < 4; j++) q[j] = (fmass * 2 - 1);
+    dQtoR(q, R);
+    dMassRotate(&m, R);
+    dBodySetMass(body[i], &m);
   }
 }
 
-void cuda_createTest()
-{
-  int i,j;
+void cuda_createTest() {
+  int i, j;
   if (world) dWorldDestroy(world);
   world = dWorldCreate();
   const dReal scale = 0.1;
   const dReal fmass = 0.1;
   // create random bodies
-  for (i=0; i<num; i++) {
+  for (i = 0; i < num; i++) {
     // create bodies at random position and orientation
-    body[i] = dBodyCreate (world);
-    dBodySetPosition (body[i],(dRandReal()*2-1),(dRandReal()*2-1),
-		      (dRandReal()*2+RADIUS));
+    body[i] = dBodyCreate(world);
+    dBodySetPosition(body[i], (dRandReal() * 2 - 1), (dRandReal() * 2 - 1),
+                     (dRandReal() * 2 + RADIUS));
     dReal q[4];
-    for (j=0; j<4; j++) q[j] = (dRandReal()*2-1);
-    dBodySetQuaternion (body[i],q);
+    for (j = 0; j < 4; j++) q[j] = (dRandReal() * 2 - 1);
+    dBodySetQuaternion(body[i], q);
 
     // set random velocity
-    dBodySetLinearVel (body[i], scale*(dRandReal()*2-1),scale*(dRandReal()*2-1),
-		       scale*(dRandReal()*2-1));
-    dBodySetAngularVel (body[i], scale*(dRandReal()*2-1),scale*(dRandReal()*2-1),
-			scale*(dRandReal()*2-1));
+    dBodySetLinearVel(body[i], scale * (dRandReal() * 2 - 1),
+                      scale * (dRandReal() * 2 - 1),
+                      scale * (dRandReal() * 2 - 1));
+    dBodySetAngularVel(body[i], scale * (dRandReal() * 2 - 1),
+                       scale * (dRandReal() * 2 - 1),
+                       scale * (dRandReal() * 2 - 1));
 
     // set random mass (random diagonal mass rotated by a random amount)
     dMass m;
     dMatrix3 R;
-    dMassSetBox (&m,1,(fmass+0.1),(fmass+0.1),(fmass+0.1));
-    dMassAdjust (&m,(fmass+1));
-    for (j=0; j<4; j++) q[j] = (fmass*2-1);
-    dQtoR (q,R);
-    dMassRotate (&m,R);
-    dBodySetMass (body[i],&m);
-	//printf("%f\t%f\t%f\t\n", body[i]->posr.pos[0], body[i]->posr.pos[1], body[i]->posr.pos[2]);
+    dMassSetBox(&m, 1, (fmass + 0.1), (fmass + 0.1), (fmass + 0.1));
+    dMassAdjust(&m, (fmass + 1));
+    for (j = 0; j < 4; j++) q[j] = (fmass * 2 - 1);
+    dQtoR(q, R);
+    dMassRotate(&m, R);
+    dBodySetMass(body[i], &m);
+    // printf("%f\t%f\t%f\t\n", body[i]->posr.pos[0], body[i]->posr.pos[1],
+    //        body[i]->posr.pos[2]);
+
+    printf("Body %d:\t", i);
+    body_disp(body[i]);
   }
-  cuda_copyBodiesToDevice(cuda_body, body, num);
+  // cuda_copyBodiesToDevice(cuda_body, body, num);
+  cuda_copyWorldBodiesToDevice(cuda_body, world, num);
 }
 
 // start simulation - set viewpoint
-
-static void start()
-{
+static void start() {
   dAllocateODEDataForThread(dAllocateMaskAll);
+
+  if (gfx) {
+    static float xyz[3] = {2.6117f, -1.4433f, 2.3700f};
+    static float hpr[3] = {151.5000f, -30.5000f, 0.0000f};
+    dsSetViewpoint(xyz, hpr);
+  }
   createTest();
 }
 
-static void cuda_start()
-{
-  b_buff = (dBodyID) malloc(sizeof(dxBody)*num);
+static void cuda_start() {
+  b_buff = (dBodyID)malloc(sizeof(dxBody) * num);
   dAllocateODEDataForThread(dAllocateMaskAll);
+  if (gfx) {
+    static float xyz[3] = {2.6117f, -1.4433f, 2.3700f};
+    static float hpr[3] = {151.5000f, -30.5000f, 0.0000f};
+    dsSetViewpoint(xyz, hpr);
+  }
   cuda_createTest();
 }
 
 // simulation loop
+static void simLoop(int pause) {
+  static int simc;
+  printf("simLoop at %d ...\n", simc++);
 
-static void simLoop (int pause)
-{
-	dWorldStep (world,0.005);
+  if (!pause) {
+    // add random forces and torques to all bodies
+    int i;
+    const dReal scale1 = 0.005;
+    const dReal scale2 = 0.005;
+    for (i = 0; i < num; i++) {
+      dBodyAddForce(body[i], scale1 * (dRandReal() * 2 - 1),
+                    scale1 * (dRandReal() * 2 - 1),
+                    scale1 * (dRandReal() * 2 - 1));
+      dBodyAddTorque(body[i], scale2 * (dRandReal() * 2 - 1),
+                     scale2 * (dRandReal() * 2 - 1),
+                     scale2 * (dRandReal() * 2 - 1));
+    }
+
+    dWorldStep(world, SIMSTEP);
+  }
+
+  float sides[3] = {SIDE, SIDE, SIDE};
+  if (gfx) {
+    dsSetColor(1, 1, 0);
+    for (int i = 0; i < num; i++)
+      dsDrawSphere(dBodyGetPosition(body[i]), dBodyGetRotation(body[i]),
+                   RADIUS);
+  }
 }
 
-static void cuda_simLoop (int pause)
-{
-	cuda_dxProcessIslands(world, cuda_body, 0.005, NULL);
+static void cuda_simLoop(int pause) {
+  if (!pause) {
+    // add random forces and torques to all bodies
+    int i;
+    dxBody *b;
+
+    const dReal scale1 = 0.005;
+    const dReal scale2 = 0.005;
+    // for (i = 0; i < num; i++) {
+    //   dBodyAddForce(body[i], scale1 * (dRandReal() * 2 - 1),
+    //                 scale1 * (dRandReal() * 2 - 1),
+    //                 scale1 * (dRandReal() * 2 - 1));
+    //   dBodyAddTorque(body[i], scale2 * (dRandReal() * 2 - 1),
+    //                  scale2 * (dRandReal() * 2 - 1),
+    //                  scale2 * (dRandReal() * 2 - 1));
+    // }
+    // cuda_dWorldStep (world,0.005);
+    // dWorldStep(world, SIMSTEP);
+
+    // cuda_copyBodiesToDevice2(cuda_body, world, num);
+    cuda_dxProcessIslands(world, cuda_body, SIMSTEP, NULL);
+    // }
+
+    if (gfx) {
+      cuda_copyWorldBodiesFromDevice(world, cuda_body, num, b_buff);
+      // cuda_copyBodiesFromDevice(body, cuda_body, num, b_buff);
+      float sides[3] = {SIDE, SIDE, SIDE};
+      dsSetColor(1, 1, 0);
+
+      for (b = world->firstbody; b; b = (dxBody *)b->next) {
+        // for (int i = 0; i < num; i++) {
+        // dsDrawSphere (dBodyGetPosition(body[i]),
+        // dBodyGetRotation(body[i]),RADIUS);
+        auto pos = dBodyGetPosition(b);
+        auto rot = dBodyGetRotation(b);
+        dsDrawBox(pos, rot, sides);
+        // printf("Draw box NO.%d at (%f,%f,%f)...\n", i, pos[0], pos[1],
+        // pos[2]);
+      }
+    }
+  }
 }
 
-int main (int argc, char **argv)
-{
-	//printf("ODE: sizeof(dxBody): %d\n", (int) sizeof(dxBody));
+int main(int argc, char **argv) {
+  printf("ODE: sizeof(dxBody): %d\n", (int)sizeof(dxBody));
 
-	if (argc < 3 || ((num = atoi(argv[2])) <= 0)) {
-		fprintf(stderr, "Usage: %s {c|o} num\n", argv[0]);
-		exit(1);
-	}
-	if (argv[1][0] == 'c') {
-		use_cuda = true;
-	} else {
-		use_cuda = false;
-	}
-	body = (dBodyID*) malloc(sizeof(dBodyID)*num);
+  if (argc < 3 || ((num = atoi(argv[2])) <= 0)) {
+    fprintf(stderr, "Usage: %s {c|o} num\n", argv[0]);
+    exit(1);
+  }
+  if (argv[1][0] == 'c') {
+    use_cuda = true;
+  } else {
+    use_cuda = false;
+  }
+  body = (dBodyID *)malloc(sizeof(dBodyID) * num);
+  if (use_cuda) {
+    cuda_body = cuda_initBodiesOnDevice(num);
+  }
 
   // setup pointers to drawstuff callback functions
-/*  dsFunctions fn;
+  dsFunctions fn;
   fn.version = DS_VERSION;
   if (use_cuda) {
     fn.start = &cuda_start;
@@ -209,34 +295,18 @@ int main (int argc, char **argv)
   fn.command = 0;
   fn.stop = 0;
   fn.path_to_textures = DRAWSTUFF_TEXTURE_PATH;
-*/
+
   dInitODE2(0);
-  dRandSetSeed (time(0));
+  dRandSetSeed(time(0));
 
   // run simulation
-/*  dsSimulationLoop (argc,argv,352,288,&fn); */
+  dsSimulationLoop(argc, argv, 352, 288, &fn);
 
-  int i;
-  if (use_cuda) {
-//	fprintf(stderr, "CUDA\n");
-    cuda_body = cuda_initBodiesOnDevice(num);
-	cuda_start(); 
-	for (i=0;i<100;i++) {
-		cuda_simLoop(0);
-	}
-	cuda_free(cuda_body);
-  } else {
-//	fprintf(stderr, "ODE\n");
-	start();
-	for (i=0;i<100;i++) {
-		simLoop(0);
-	}
-  }
+  cuda_free(cuda_body);
 
-	free(body);
+  free(body);
 
   dWorldDestroy(world);
   dCloseODE();
   return 0;
 }
-

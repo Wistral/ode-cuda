@@ -33,6 +33,8 @@ demos = {
     ,"demo_space"
     ,"demo_space_stress"
     ,"demo_step"
+    ,"demo_bounce"
+    ,"demo_step_stripped"
     -- ,"demo_tracks"
 }
 
@@ -54,6 +56,7 @@ function _add_target(t)
     )
     add_sysincludedirs(
         "$(projectdir)/include"
+        ,"/usr/local/cuda/include"
     )
     add_deps("drawstuff", "ode")
     add_files(

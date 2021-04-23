@@ -209,7 +209,6 @@ __device__ dReal cuda_sinc(dReal x)
 //
 // `body' is the body array, `nb' is the size of the array.
 // `_joint' is the body array, `nj' is the size of the array.
-
  __global__ void cuda_step(dxBody *body, int nb, dReal stepsize, dReal g1, dReal g2, dReal g3)
 {
 	dVector3 gravity; 

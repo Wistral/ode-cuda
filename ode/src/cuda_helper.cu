@@ -102,12 +102,12 @@ ODE_API dxBody *cuda_copyBodiesToDevice(dxBody *cuda_body, dxBody **body, int NU
 	return cuda_body;
 }
 
-ODE_API dxBody *cuda_copyBodiesToDevice2(dxBody *cuda_body, dxWorld *world, int NUM)
+ODE_API dxBody *cuda_copyWorldBodiesToDevice(dxBody *cuda_body, dxWorld *world, int NUM)
 {
 	dxBody *b;
 	int i=0;
 	for (b=world->firstbody;b;b=(dxBody*)b->next) {
-		cudaMemcpy(cuda_body+(++i), b, sizeof(dxBody), cudaMemcpyHostToDevice);
+		cudaMemcpy(cuda_body+(i++), b, sizeof(dxBody), cudaMemcpyHostToDevice);
 //		printf("\t%d b.posr.pos[0] = %f\n", i, b->posr.pos[0]);
 //		printf("%f\n", b->posr.pos[0]);
 	}
@@ -173,7 +173,7 @@ ODE_API dxBody **cuda_copyBodiesFromDevice(dxBody **body, dxBody *cuda_body, int
 	return NULL;
 }
 
-ODE_API dxBody **cuda_copyBodiesFromDevice2(dxWorld *world, dxBody *cuda_body, int NUM, dxBody *b_buff)
+ODE_API dxBody **cuda_copyWorldBodiesFromDevice(dxWorld *world, dxBody *cuda_body, int NUM, dxBody *b_buff)
 {
 	// printf("Copy Bodies From Device\n");
 	int i=0;
