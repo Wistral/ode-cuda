@@ -27,3 +27,38 @@ target("tests")
         "joints/*.cpp"
     )
     -- add_links("dl", "rt", "cudart_static")
+
+function _add_gtest_target(t)
+    if not os.exists(t .. ".cc") then
+        return
+    end
+    target(t)
+    on_load(function (target)
+        import("lib.detect.find_package")
+
+        target:add(find_package("gtest"))
+        target:add(find_package("gtest_main"))
+    end)
+    set_languages("c99", "c++11")
+    set_kind("binary")
+    add_cxxflags("-g")
+    add_cuflags("-g")
+    add_ldflags(
+        "-ldl", "-lrt"
+    )
+
+    add_defines(
+        "DRAWSTUFF_TEXTURE_PATH=\"$(projectdir)/drawstuff/textures\""
+    )
+
+    add_sysincludedirs(
+        "$(projectdir)/include"
+        ,"/usr/local/cuda/include"
+    )
+    add_deps("ode")
+    add_files(
+        t .. ".cc"
+    )    
+end
+
+_add_gtest_target("cuda_mat_test")
