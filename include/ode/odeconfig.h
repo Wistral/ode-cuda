@@ -87,7 +87,7 @@
   #endif
 #endif
 
-#define NULL nullptr
+// #define NULL nullptr
 
 #if !defined(__cplusplus)
 #define bool _Bool

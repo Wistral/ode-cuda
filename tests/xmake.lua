@@ -51,6 +51,11 @@ function _add_gtest_target(t)
         "DRAWSTUFF_TEXTURE_PATH=\"$(projectdir)/drawstuff/textures\""
     )
 
+    add_includedirs(
+        ".",
+        "$(projectdir)/ode/src"
+    )
+
     add_sysincludedirs(
         "$(projectdir)/include"
         ,"/usr/local/cuda/include"
@@ -62,3 +67,4 @@ function _add_gtest_target(t)
 end
 
 _add_gtest_target("cuda_mat_test")
+_add_gtest_target("ode_test")

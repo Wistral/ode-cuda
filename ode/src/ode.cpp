@@ -96,7 +96,7 @@ static inline int generateWorldCheckTag()
 	return ++g_world_check_tag_generator;
 }
 
-static void checkWorld (dxWorld *w)
+void checkWorld (dxWorld *w)
 {
   dxBody *b;
   dxJoint *j;
