@@ -5,7 +5,12 @@ namespace {
 
 template <typename T>
 bool cmpNum(T n1, T n2) {
-  return std::fabs(n1 - n2) < 1e-5;
+  auto diff = std::fabs(n1 - n2);
+  if (diff < 1e-5)
+    return true;
+  else
+    printf("Diff: %e\n", diff);
+  return false;
 }
 
 #define HEADER
@@ -97,9 +102,7 @@ TEST(testMatrixMultiply, 0) {
   cuda_freeFromDevice(C);
 }
 
-TEST(testMatrixMultiply, 3)
-// void testMatrixMultiply3()
-{
+TEST(testMatrixMultiply, 3) {
   const int dim = 3;
   using Mat3 = dReal[dPAD(dim) * dPAD(dim)];
   Mat3 A, B, C, host_C;
@@ -189,12 +192,12 @@ TEST(testMatrixMultiply, 5) {
   printMatrix0f("C", C, 9, 25);
   dReal *dev_A = cuda_copyToDevice(A, 9 * 17);
   dReal *dev_B = cuda_copyToDevice(B, 17 * 25);
-  dReal *dev_C = cuda_copyToDevice(C, 9 * 25);
-  dMultiply0(C, A, B, 9, 17, 25);
-  printMatrix0f("C_ODE", C, 9, 25);
+  dReal *dev_C = cuda_realMalloc(9 * 25);
+  dMultiply0(C, A, B, 9, 17, 25, false);
+  ShowMat0f(C, 9, 25);
   cuda_dMultiply0(dev_C, dev_A, dev_B, 9, 17, 25);
   cuda_copyFromDevice(dev_C, host_C, 9 * 25);
-  printMatrix0f("C_CUD", host_C, 9, 25);
+  ShowMat0f(host_C, 9, 25);
   cuda_freeFromDevice(dev_A);
   cuda_freeFromDevice(dev_B);
   cuda_freeFromDevice(dev_C);
@@ -223,6 +226,7 @@ TEST(testMatrixMultiply, 5) {
   }
 
 fat_matrix_with_dim(100);
-fat_matrix_with_dim(1000);
+fat_matrix_with_dim(200);
+fat_matrix_with_dim(400);
 
 }  // namespace
