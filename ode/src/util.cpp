@@ -27,9 +27,7 @@
 
 #define ALLOCA dALLOCA16
 
-//****************************************************************************
 // Auto disabling
-
 void dInternalHandleAutoDisabling (dxWorld *world, dReal stepsize)
 {
 	dxBody *bb;
@@ -172,7 +170,6 @@ void dInternalHandleAutoDisabling (dxWorld *world, dReal stepsize)
 
 // return sin(x)/x. this has a singularity at 0 so special handling is needed
 // for small arguments.
-
 static inline dReal sinc (dReal x)
 {
   // if |x| < 1e-4 then use a taylor series expansion. this two term expansion
@@ -185,7 +182,6 @@ static inline dReal sinc (dReal x)
 
 // given a body b, apply its linear and angular rotation over the time
 // interval h, thereby adjusting its position and orientation.
-
 void dxStepBody (dxBody *b, dReal h)
 {
   // cap the angular velocity
@@ -309,7 +305,6 @@ void dxStepBody (dxBody *b, dReal h)
 // never start a new islands from a disabled body. thus islands of disabled
 // bodies will not be included in the simulation. disabled bodies are
 // re-enabled if they are found to be part of an active island.
-
 void dxProcessIslands (dxWorld *world, dReal stepsize, dstepper_fn_t stepper)
 {
   dxBody *b,*bb,**body;
@@ -349,24 +344,29 @@ void dxProcessIslands (dxWorld *world, dReal stepsize, dstepper_fn_t stepper)
     body[0] = bb;
     bcount = 1;
     jcount = 0;
-    goto quickstart;
+
+    // traverse and tag all body's joints, add untagged connected bodies to
+    // stack
+    auto traverse_joints = [&]() {
+      for (dxJointNode *n = b->firstjoint; n; n = n->next) {
+        if (!n->joint->tag && n->joint->isEnabled()) {
+          n->joint->tag = 1;
+          joint[jcount++] = n->joint;
+          if (n->body && !n->body->tag) {
+            n->body->tag = 1;
+            stack[stacksize++] = n->body;
+          }
+        }
+      }
+    };
+
+    traverse_joints();
     while (stacksize > 0) {
       b = stack[--stacksize];	// pop body off stack
       body[bcount++] = b;	// put body on body list
-      quickstart:
 
-      // traverse and tag all body's joints, add untagged connected bodies
-      // to stack
-      for (dxJointNode *n=b->firstjoint; n; n=n->next) {
-        if (!n->joint->tag && n->joint->isEnabled()) {
-	  n->joint->tag = 1;
-	  joint[jcount++] = n->joint;
-	  if (n->body && !n->body->tag) {
-	    n->body->tag = 1;
-	    stack[stacksize++] = n->body;
-	  }
-	}
-      }
+      traverse_joints();
+
       dIASSERT(stacksize <= world->nb);
       dIASSERT(stacksize <= world->nj);
     }
