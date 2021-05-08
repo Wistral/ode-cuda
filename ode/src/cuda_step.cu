@@ -192,6 +192,14 @@ __device__ void cuda_dMultiply0_331(dReal *A, dReal  const*B, dReal const*C) {
 	// MUL_PROC(B,C,6);
 }
 
+// A = B*C  A 1x3, B 3x3, C 3x1
+// A,B,C  nopad
+__device__ void cuda_dMultiplyAdd0_331(dReal *A, dReal  const*B, dReal const*C) {
+	A[0] += dDOT11(B, C);
+	A[1] += dDOT11((B+3), C);
+	A[2] += dDOT11((B+6), C);
+}
+
 // A = B*C  A 1x3, B 1x3, C 3x3
 __device__ void cuda_dMultiply0_133(dReal *A, dReal *B, dReal *C) {
 	A[0] = dDOT13((B),(C));
@@ -199,14 +207,6 @@ __device__ void cuda_dMultiply0_133(dReal *A, dReal *B, dReal *C) {
 	A[2] = dDOT13((B),(C+2));
 }
 
-// // A += B*C  A 3x1, B 3x3, C 3x1
-// __device__ void cuda_dMultiplyAdd0_331(dReal *A, dReal *B, dReal *C) {
-// 	A[0] += dDOT((B),(C));
-// 	//A[1] += dDOT((B+4),(C));
-// 	A[1] += dDOT((B+3),(C));
-// 	//A[2] += dDOT((B+8),(C));
-// 	A[2] += dDOT((B+6),(C));
-// }
 
 // a -= b cross c
 __device__ void cuda_dCross(dReal *a, dReal *b, dReal *c) {
@@ -321,6 +321,7 @@ __global__ void cuda_step_none(dxBody *body, int nb, dReal stepsize, dReal g1,
 	_CUDA_DBG_DO(printf("tmp after compute inertia tensor \n");)
 	_CUDA_DBG_DO( show_mat(tmp,3,3);)
 
+if (body[bid].flags & dxBodyGyroscopic) {
     // compute inverse inertia tensor in global frame
     cuda_dMultiply2_333(tmp, body[bid].invI, body[bid].posr.R);
     cuda_dMultiply0_333(invI, body[bid].posr.R, tmp);
@@ -334,11 +335,10 @@ __global__ void cuda_step_none(dxBody *body, int nb, dReal stepsize, dReal g1,
 
     // compute rotational force
     cuda_dMultiply0_331(tmp, I, body[bid].avel);
-	// __syncthreads();
 	_CUDA_DBG_DO(printf("tmp after compute rotational force \n"));
 	_CUDA_DBG_DO(show_mat(tmp,3,3));
     cuda_dCross(body[bid].tacc, body[bid].avel, tmp);
-
+}
 
 	// add the gravity force to all bodies
 
@@ -348,6 +348,9 @@ __global__ void cuda_step_none(dxBody *body, int nb, dReal stepsize, dReal g1,
 		body[bid].facc[2] += body[bid].mass.mass * gravity[2];
     }
 
+	/// Joint relavant implement
+	// here
+	/// Joint relavant implement
 
 	// create (6*nb,6*nb) inverse mass matrix `invM', and fill it with mass
 	// parameters  
@@ -372,39 +375,53 @@ __global__ void cuda_step_none(dxBody *body, int nb, dReal stepsize, dReal g1,
 	//dSetZero (fe,n6);
 	//dSetZero (v,n6);
 
+	// calculate fe(external force)
     for (j = 0; j < 3; j++) fe[j] = body[bid].facc[j];
     for (j = 0; j < 3; j++) {
 		fe[3+j] = body[bid].tacc[j];
 		_CUDA_DBG_DO( printf("update body[%d].tacc[%d] = %f\n",bid,j,body[bid].tacc[j]);)
 	}
-    for (j = 0; j < 3; j++) v[j] = body[bid].lvel[j];
-    for (j = 0; j < 3; j++) v[3+j] = body[bid].avel[j];
 
-	// this will be set to the velocity update
+	// this will be set to the velocity update. vnew means cforce
 	dReal vnew[6];
+
+	// here should calculate vnew(cforce) according to joints restriction
+	// temperarily just set it to zero
 	for(i = 0; i < 6; i++) vnew[i] = 0;
+	
+	// add fe to vnew(cforce)
+	for(i = 0; i < 6; i++) vnew[i] += fe[i];
+	// // multiply cforce by stepsize
+	for(i = 0; i < 6; i++) vnew[i] *= stepsize;
+
+
 
 	_CUDA_DBG_DO(show_mat(invM, 6,6);)
 	_CUDA_DBG_DO(show_mat(fe, 6,1);)
 	_CUDA_DBG_DO(show_mat(vnew, 1, 6));
 	// no constraints
-	naiveMatMultiply(vnew, invM, fe, 6, 6, 1);
-	for (i = 0; i < 6; i++) {
-		vnew[i] = v[i] + stepsize * vnew[i];
-		_CUDA_DBG_DO(printf("update vnew[%d] = %f + %f * %f\n", i, v[i], stepsize, vnew[i]));
-	}
+	// naiveMatMultiply(vnew, invM, fe, 6, 6, 1);
+
+
+	// for (i = 0; i < 6; i++) {
+	// 	vnew[i] = v[i] + stepsize * vnew[i];
+	// 	_CUDA_DBG_DO(printf("update vnew[%d] = %f + %f * %f\n", i, v[i], stepsize, vnew[i]));
+	// }
 
 	// apply the velocity update to the bodies
 
 	for (j = 0; j < 3; j++) {
-		body[bid].lvel[j] = vnew[j];
+		body[bid].lvel[j] += vnew[j] * (body[bid].invMass);
 		_CUDA_DBG_DO( printf("update body[%d].lvel[%d] to %f\n", bid, j, vnew[j]);)
 	}
-    for (j = 0; j < 3; j++) {
-		body[bid].avel[j] = vnew[3 + j];
-		_CUDA_DBG_DO(printf("update body[%d].avel[%d] to %f\n", bid, j, vnew[3+j]));
-	}
+	// add invM * cforce to the body velocity
+	cuda_dMultiplyAdd0_331(body[bid].avel, invI, (vnew+3));
+    // for (j = 0; j < 3; j++) {
+	// 	body[bid].avel[j] += vnew[3 + j];
+	// 	_CUDA_DBG_DO(printf("update body[%d].avel[%d] to %f\n", bid, j, vnew[3+j]));
+	// }
 
+	// ! impl of void dxStepBody (dxBody *b, dReal h) in CUDA
 	// update the position and orientation from the new linear/angular velocity
 	// (over the given timestep)
 	//dxBody *b = &(body[bid]);
@@ -425,15 +442,8 @@ __global__ void cuda_step_none(dxBody *body, int nb, dReal stepsize, dReal g1,
 
 	dReal h = stepsize;
 
-	// cuPrintf("h == stepsize: %f == %f\n", h, stepsize);
-	// cuPrintf("body[bid]: XYZ1: %f\t%f\t%f\t\n", body[bid].posr.pos[0], body[bid].posr.pos[1], body[bid].posr.pos[2]);
-	// cuPrintf("body[bid]: VEL1: %f\t%f\t%f\t\n", body[bid].lvel[0], body[bid].lvel[1], body[bid].lvel[2]);
-
 	// handle linear velocity
 	for (j=0; j<3; j++) body[bid].posr.pos[j] += h * body[bid].lvel[j];
-
-//	cuPrintf("body[bid]: XYZ2: %f\t%f\t%f\t\n", body[bid].posr.pos[0], body[bid].posr.pos[1], body[bid].posr.pos[2]);
-//	cuPrintf("body[bid]: VEL2: %f\t%f\t%f\t\n\n", body[bid].lvel[0], body[bid].lvel[1], body[bid].lvel[2]);
 
 	if (body[bid].flags & dxBodyFlagFiniteRotation) {
 		dVector3 irv;	// infitesimal rotation vector
