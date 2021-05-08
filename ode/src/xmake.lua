@@ -13,7 +13,8 @@ on_load(function (target)
     }))
 end)
 
-add_defines("__ODE__","dNODEBUG")
+add_defines(
+    "dNODEBUG")
 -- add files
 add_files(
     -- "nextafterf.c",
@@ -86,8 +87,8 @@ add_files(
     ,"*.cu"
 
 )
-add_cuflags("-g")
-add_cxxflags("-g", "-Werror", "-Wconversion", "-Waddress")
+add_cuflags("-g", "-m64")
+add_cxxflags("-g", "-m64", "-Werror", "-Wconversion", "-Waddress")
 add_cxflags("-g")
 add_includedirs(
     "."

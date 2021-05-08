@@ -79,3 +79,5 @@ state.dif
 
 .xmake
 build/linux
+cpp.demo
+

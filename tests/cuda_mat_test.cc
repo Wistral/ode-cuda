@@ -192,7 +192,8 @@ TEST(testMatrixMultiply, 5) {
   printMatrix0f("C", C, 9, 25);
   dReal *dev_A = cuda_copyToDevice(A, 9 * 17);
   dReal *dev_B = cuda_copyToDevice(B, 17 * 25);
-  dReal *dev_C = cuda_realMalloc(9 * 25);
+  dReal *dev_C;
+  cudaMalloc((void**) &dev_C, sizeof(dReal)*9 * 25); // cuda_realMalloc(9 * 25);
   dMultiply0(C, A, B, 9, 17, 25, false);
   ShowMat0f(C, 9, 25);
   cuda_dMultiply0(dev_C, dev_A, dev_B, 9, 17, 25);
@@ -203,6 +204,44 @@ TEST(testMatrixMultiply, 5) {
   cuda_freeFromDevice(dev_C);
   for (int i = 0; i < 9 * 25; i++) {
     assert(cmpNum(C[i], host_C[i]));
+  }
+}
+
+TEST(testMatrixMultiply, nopad) {
+  const int dim = 3;
+  using Mat3 = dReal[(dim) * (dim)];
+  Mat3 A, B, C, host_C;
+  const dReal *C_on_CUDA = host_C, *C_ODE = C;
+  for (int i = 0; i < dim * dim; ++i) {
+    A[i] = i;
+  }
+  makeIdMatrix(B, dim, 1);
+  dSetZero(C, (dim ) * (dim ));
+
+  ShowMat(A, 3, 3);
+  ShowMat(B, 3, 3);
+  ShowMat(C, 3, 3);
+
+  dReal *dev_A = cuda_copyToDevice(A, dim);
+  dReal *dev_B = cuda_copyToDevice(B, dim);
+  dReal *dev_C = cuda_copyToDevice(C, dim);
+
+  // with ODE
+  // C = A * B
+  dMultiply0(C, A, B, dim, dim, dim, false);
+  ShowMat(C, 3, 3);
+
+  // with CUDA
+  // dev_C = dev_A * dev_B
+  cuda_dMultiply0_333_nopad(dev_C, dev_A, dev_B);
+  cuda_copyFromDevice(dev_C, host_C, dim * dim);
+  ShowMat(host_C, 3, 3);
+  cuda_freeFromDevice(dev_A);
+  cuda_freeFromDevice(dev_B);
+  cuda_freeFromDevice(dev_C);
+
+  for (int i = 0; i < dim * dim; i++) {
+    assert(C[i] == host_C[i]);
   }
 }
 

@@ -165,7 +165,6 @@ static void multiply_invM_JT (int m, int nb, dRealMutablePtr iMJ, int *jb,
 #endif
 
 // compute out = J*in.
-
 static void multiply_J (int m, dRealMutablePtr J, int *jb,
 	dRealMutablePtr in, dRealMutablePtr out)
 {
@@ -702,19 +701,19 @@ void dxQuickStepper (dxWorld *world, dxBody * const *body, int nb,
 		// because it gets destroyed by SOR solver
 		// instead of saving all Jacobian, we can save just rows
 		// for joints, that requested feedback (which is normaly much less)
-                dReal *Jcopy = NULL;
-                if (mfb > 0) {
-                  Jcopy = (dReal*) ALLOCA (mfb*12*sizeof(dReal));
-                  mfb = 0;
-                  for (i=0; i<nj; i++)
-                    if (joint[i]->feedback) {
-                      memcpy(Jcopy+mfb*12, J+ofs[i]*12, info[i].m*12*sizeof(dReal));
-                      mfb += info[i].m;
-                    }
+		dReal *Jcopy = NULL;
+		if (mfb > 0) {
+			Jcopy = (dReal *)ALLOCA(mfb * 12 * sizeof(dReal));
+			mfb = 0;
+			for (i = 0; i < nj; i++)
+			if (joint[i]->feedback) {
+				memcpy(Jcopy + mfb * 12, J + ofs[i] * 12,
+						info[i].m * 12 * sizeof(dReal));
+				mfb += info[i].m;
+			}
 		}
 
-
-		// create an array of body numbers for each joint row
+        // create an array of body numbers for each joint row
 		int *jb_ptr = jb;
 		for (i=0; i<nj; i++) {
 			int b1 = (joint[i]->node[0].body) ? (joint[i]->node[0].body->tag) : -1;

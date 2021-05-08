@@ -8,6 +8,7 @@ demos = {
     ,"demo_collision"
     ,"demo_convex_cd"
     ,"demo_crash"
+    ,"demo_crash_cuda"
     ,"demo_cylvssphere"
     -- ,"demo_dball"
     -- ,"demo_dhinge"
@@ -56,11 +57,38 @@ function _add_target(t)
     )
     add_sysincludedirs(
         "$(projectdir)/include"
+        ,"$(projectdir)/ode/src"
         ,"/usr/local/cuda/include"
     )
     add_deps("drawstuff", "ode")
     add_files(
         t .. ".cpp"
+    )    
+end
+
+function _add_target_cu(t)
+    if not os.exists(t .. ".cu") then
+        return
+    end
+    target(t)
+    set_languages("c99", "c++11")
+    set_kind("binary")
+    -- add_cxxflags("-g")
+    add_cuflags("-g")
+    -- add_ldflags(
+    --     "-ldl", "-lrt"
+    -- )
+
+    -- add_defines(
+    --     "DRAWSTUFF_TEXTURE_PATH=\"$(projectdir)/drawstuff/textures\""
+    -- )
+    add_sysincludedirs(
+        "$(projectdir)/include"
+        ,"/usr/local/cuda/include"
+    )
+    -- add_deps("drawstuff", "ode")
+    add_files(
+        t .. ".cu"
     )    
 end
 
@@ -97,3 +125,6 @@ _add_target("cuda_demo_ode")
 add_ldflags(
     "-ldl", "-lrt"
 )
+
+
+_add_target_cu("cuda_demo_saxpy")
