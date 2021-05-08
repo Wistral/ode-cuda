@@ -77,13 +77,13 @@ static dBodyID b_buff;
 
 static int stepcount = 0;
 
-void body_disp(dBodyID b) {
-  auto pos = dBodyGetPosition(b);
-  auto rot = dBodyGetRotation(b);
-  // dsDrawBox(pos, rot, sides);
-  printf(" pos: (%f,%f,%f)...\t", pos[0], pos[1], pos[2]);
-  printf(" rot: (%f,%f,%f)...\n", rot[0], rot[1], rot[2]);
-}
+// void body_disp(dBodyID b) {
+//   auto pos = dBodyGetPosition(b);
+//   auto rot = dBodyGetRotation(b);
+//   // dsDrawBox(pos, rot, sides);
+//   printf(" pos: (%f,%f,%f)...\t", pos[0], pos[1], pos[2]);
+//   printf(" rot: (%f,%f,%f)...\n", rot[0], rot[1], rot[2]);
+// }
 
 // create the test system
 void createTest() {
@@ -125,6 +125,20 @@ void createTest() {
   }
 }
 
+void disp_body(dxBody *body) {
+  int i;
+  printf("flags: %d\n", body->flags);
+  printf("mass: %f\n", body->mass);
+  printf("InvMass: %f\n", body->invMass);
+  printf("posr:\n");
+  printf("\tpos: (%f,%f,%f,%f)\n", body->posr.pos[0], body->posr.pos[1],
+         body->posr.pos[2], body->posr.pos[3]);
+  for (i = 0; i < 3; ++i)
+    printf("\tR[%d]: (%f,%f,%f,%f)\n", i, (body->posr.R + i * 4)[0],
+           (body->posr.R + i * 4)[1], (body->posr.R + i * 4)[2],
+           (body->posr.R + i * 4)[3]);
+}
+
 void cuda_createTest() {
   int i, j;
   if (world) dWorldDestroy(world);
@@ -158,11 +172,9 @@ void cuda_createTest() {
     dQtoR(q, R);
     dMassRotate(&m, R);
     dBodySetMass(body[i], &m);
-    // printf("%f\t%f\t%f\t\n", body[i]->posr.pos[0], body[i]->posr.pos[1],
-    //        body[i]->posr.pos[2]);
 
-    printf("Body %d:\t", i);
-    body_disp(body[i]);
+    // printf("========== Body %d:\n", i);
+    // disp_body(body[i]);
   }
   // cuda_copyBodiesToDevice(cuda_body, body, num);
   cuda_copyWorldBodiesToDevice(cuda_body, world, num);
@@ -243,7 +255,6 @@ static void cuda_simLoop(int pause) {
 
     // cuda_copyBodiesToDevice2(cuda_body, world, num);
     cuda_dxProcessIslands(world, cuda_body, SIMSTEP, NULL);
-    // }
 
     if (gfx) {
       cuda_copyWorldBodiesFromDevice(world, cuda_body, num, b_buff);
@@ -284,8 +295,7 @@ int main(int argc, char **argv) {
 
   // setup pointers to drawstuff callback functions
   dsFunctions fn;
-  fn.version = DS_VERSION;
-  if (use_cuda) {
+  fn.version = DS_VERSION;  if (use_cuda) {
     fn.start = &cuda_start;
     fn.step = &cuda_simLoop;
   } else {
@@ -297,7 +307,7 @@ int main(int argc, char **argv) {
   fn.path_to_textures = DRAWSTUFF_TEXTURE_PATH;
 
   dInitODE2(0);
-  dRandSetSeed(time(0));
+  dRandSetSeed((1));
 
   // run simulation
   dsSimulationLoop(argc, argv, 352, 288, &fn);

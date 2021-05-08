@@ -15,10 +15,26 @@
 #include <ode/cuda_step.h>
 #include <cuda.h>
 #include <ode/cuda_helper.h>
+// #include <ode/cuda_demo_helper.h>
 #include <ode/cuda_matrix.h>
-//#include "cuprintf.cu"
+// #include <ode/cuPrintf.cuh>
 
 #define BLOCKSIZE 16
+
+__device__ void printMatrixBase(const char *name, const char *fmt,
+                                dReal const *a, const int h, const int w,
+                                bool pad) {
+  printf("%s (%s):\n", name, (pad ? "padded" : "no-pad"));
+  for (int row = 0; row < h; row++) {
+    for (int col = 0; col < w; col++)
+      printf(fmt, a[(pad ? (row * (dPAD(w)) + col) : (row * w + col))]);
+    printf("\n");
+  }
+  printf("\n");
+}
+
+#define show_mat(M, X, Y) printMatrixBase(#M, "%f\t", (M),(X),(Y),false)
+#define show_Pmat(M, X, Y) printMatrixBase(#M, "%f\t", (M),(X),(Y),true)
 
 __device__ void dQMultiply0 (dQuaternion qa, const dQuaternion qb, const dQuaternion qc) {
   qa[0] = qb[0]*qc[0] - qb[1]*qc[1] - qb[2]*qc[2] - qb[3]*qc[3];
@@ -63,17 +79,22 @@ __device__ void dQtoR(const dQuaternion q, dMatrix3 R) {
 	return dRfromQ(R, q);
 }
 
-__device__ dReal dDOTpq(dReal *a, dReal *b, int p, int q) {
-	return ((a)[0]*(b)[0] + (a)[p]*(b)[q] + (a)[2*(p)]*(b)[2*(q)]);
-}
+// __device__ dReal dDOTpq(dReal *a, dReal *b, int p, int q) {
+// 	return ((a)[0]*(b)[0] + (a)[p]*(b)[q] + (a)[2*(p)]*(b)[2*(q)]);
+// }
 
-__device__ dReal dDOT(dReal *a, dReal *b) {
-	return dDOTpq(a,b,1,1);
-}
+#define dDOTpq(a,b,p,q)  (a[0]*b[0] + a[p]*b[q] + a[2*(p)]*b[2*(q)])
 
-__device__ dReal dDOT13(dReal *a, dReal *b) {
-	return dDOTpq(a,b,1,3);
-}
+// __device__ dReal dDOT(dReal *a, dReal *b) {
+// 	return dDOTpq(a,b,1,1);
+// }
+
+
+#define dDOT11(a,b) dDOTpq(a,b,1,1)
+#define dDOT(a,b) dDOT11(a,b)
+#define dDOT13(a,b) dDOTpq(a,b,1,3)
+#define dDOT14(a,b) dDOTpq(a,b,1,4)
+#define dDOT41(a,b) dDOTpq(a,b,4,1)
 
 __device__ int dNormalize4(dVector4 a) {
   dReal l = dDOT(a,a)+a[3]*a[3];
@@ -108,52 +129,67 @@ __device__ int dNormalize4(dVector4 a) {
 /* special-case matrix multiplication functions */
 
 // A = B*C  A, B, C all 3x3
+// B: pad	A,C: nopad
 __device__ void cuda_dMultiply0_333(dReal *A, dReal *B, dReal *C) {
+
 	A[0] = dDOT13((B),(C)); 
 	A[1] = dDOT13((B),(C+1)); 
 	A[2] = dDOT13((B),(C+2)); 
-	//A[4] = dDOT13((B+4),(C)); 
-	A[4] = dDOT13((B+3),(C)); 
-	//A[5] = dDOT13((B+4),(C+1)); 
-	A[5] = dDOT13((B+3),(C+1)); 
-	//A[6] = dDOT13((B+4),(C+2));
-	A[6] = dDOT13((B+3),(C+2));
-	//A[8] = dDOT13((B+8),(C)); 
-	A[8] = dDOT13((B+6),(C)); 
-	//A[9] = dDOT13((B+8),(C+1)); 
-	A[9] = dDOT13((B+6),(C+1)); 
-	//A[10] = dDOT13((B+8),(C+2)); 
-	A[10] = dDOT13((B+6),(C+2)); 
+
+	A[3] = dDOT13((B+4),(C)); 
+	A[4] = dDOT13((B+4),(C+1)); 
+	A[5] = dDOT13((B+4),(C+2)); 
+
+	A[6] = dDOT13((B+8),(C)); 
+	A[7] = dDOT13((B+8),(C+1)); 
+	A[8] = dDOT13((B+8),(C+2)); 
 }
 
 // A = B*C^T  A, B, C all 3x3
+// A: nopad,	B,C: pad
 __device__ void cuda_dMultiply2_333(dReal *A, dReal *B, dReal *C) {
-	A[0] = dDOT((B),(C)); 
-	//A[1] = dDOT((B),(C+4)); 
-	A[1] = dDOT((B),(C+3)); 
-	//A[2] = dDOT((B),(C+8)); 
-	A[2] = dDOT((B),(C+3)); 
-	//A[4] = dDOT((B+4),(C)); 
-	A[4] = dDOT((B+3),(C)); 
-	//A[5] = dDOT((B+4),(C+4)); 
-	A[5] = dDOT((B+3),(C+3)); 
-	//A[6] = dDOT((B+4),(C+8));
-	A[6] = dDOT((B+3),(C+6));
-	//A[8] = dDOT((B+8),(C)); 
-	A[8] = dDOT((B+6),(C)); 
-	//A[9] = dDOT((B+8),(C+4)); 
-	A[9] = dDOT((B+6),(C+3)); 
-	//A[10] = dDOT((B+8),(C+8)); 
-	A[10] = dDOT((B+6),(C+6)); 
+	A[0] = dDOT11((B),(C)); 
+	A[1] = dDOT11((B),(C+4)); 
+	A[2] = dDOT11((B),(C+8)); 
+
+	A[3] = dDOT11((B+4),(C)); 
+	A[4] = dDOT11((B+4),(C+4)); 
+	A[5] = dDOT11((B+4),(C+8));
+
+	A[6] = dDOT11((B+8),(C)); 
+	A[7] = dDOT11((B+8),(C+4)); 
+	A[8] = dDOT11((B+8),(C+8)); 
 }
 
+#define CU_ARRAY_DBG(A)                                 \
+  printf("---\narray " #A "\n");                        \
+  for (i = 0; i < 3; ++i) {                             \
+    for (j = 0; j < 3; ++j) {                           \
+      printf(#A "[%d,%d]{%f}\t", i, j, (A)[3 * i + j]); \
+    }                                                   \
+    printf("\n");                                       \
+  }
+
+#define MUL_PROC(B, C, OFFSET)                                                 \
+  for (j = 0; j < 3; ++j) {                                                    \
+    printf("B[%d]*C[%d] = %f * %f = %f\n", j + OFFSET, j, B[j + OFFSET], C[j], \
+           B[j + OFFSET] * C[j]);                                              \
+  }
+
 // A = B*C  A 3x1, B 3x3, C 3x1
-__device__ void cuda_dMultiply0_331(dReal *A, dReal *B, dReal *C) {
-	A[0] = dDOT((B),(C));
-	//A[1] = dDOT((B+4),(C));
-	A[1] = dDOT((B+3),(C));
-	//A[2] = dDOT((B+8),(C));
-	A[2] = dDOT((B+6),(C));
+// A,B,C: nopad
+__device__ void cuda_dMultiply0_331(dReal *A, dReal  const*B, dReal const*C) {
+	A[0] = dDOT11(B, C);
+	A[3] = dDOT11((B+3), C);
+	A[6] = dDOT11((B+6), C);
+
+	// int i,j;
+	// CU_ARRAY_DBG(B);
+	// CU_ARRAY_DBG(C);
+
+    // MUL_PROC(B,C,0);
+	// MUL_PROC(B,C,3);
+	// MUL_PROC(B,C,6);
 }
 
 // A = B*C  A 1x3, B 1x3, C 3x3
@@ -163,14 +199,14 @@ __device__ void cuda_dMultiply0_133(dReal *A, dReal *B, dReal *C) {
 	A[2] = dDOT13((B),(C+2));
 }
 
-// A += B*C  A 3x1, B 3x3, C 3x1
-__device__ void cuda_dMultiplyAdd0_331(dReal *A, dReal *B, dReal *C) {
-	A[0] += dDOT((B),(C));
-	//A[1] += dDOT((B+4),(C));
-	A[1] += dDOT((B+3),(C));
-	//A[2] += dDOT((B+8),(C));
-	A[2] += dDOT((B+6),(C));
-}
+// // A += B*C  A 3x1, B 3x3, C 3x1
+// __device__ void cuda_dMultiplyAdd0_331(dReal *A, dReal *B, dReal *C) {
+// 	A[0] += dDOT((B),(C));
+// 	//A[1] += dDOT((B+4),(C));
+// 	A[1] += dDOT((B+3),(C));
+// 	//A[2] += dDOT((B+8),(C));
+// 	A[2] += dDOT((B+6),(C));
+// }
 
 // a -= b cross c
 __device__ void cuda_dCross(dReal *a, dReal *b, dReal *c) {
@@ -181,14 +217,21 @@ __device__ void cuda_dCross(dReal *a, dReal *b, dReal *c) {
 
 // A = B*C  A pxr, B pxq, C qxr
 __device__ void naiveMatMultiply(dReal *A, dReal *B, dReal *C, int p, int q, int r) {
-	int i, j, k;
-	for (i = 0; i < p; i++) {
-		for (j = 0; j < r; j++) {
-			for (k = 0; k < q; k++) {
-				A[i*r + j] += (B[i*q + k])*(C[k*r + j]);
-			}
-		}
-	}
+  int i, j, k;
+  for (j = 0; j < p; ++j)
+    for (k = 0; k < r; ++k) {
+      for (i = 0; i < q; ++i) {
+        A[k + j * r] += B[i] * C[k + r * i];
+      }
+    }
+
+  // for (i = 0; i < p; i++) {
+  // 	for (j = 0; j < r; j++) {
+  // 		for (k = 0; k < q; k++) {
+  // 			A[i*r + j] += (B[i*q + k])*(C[k*r + j]);
+  // 		}
+  // 	}
+  // }
 }
 
 __device__ dReal cuda_sinc(dReal x)
@@ -199,6 +242,34 @@ __device__ dReal cuda_sinc(dReal x)
 	if (fabs(x) < 1.0e-4) return (1.0) - x*x*(0.166666666666666666667);
 	else return sinf(x)/x;
 }
+
+
+__device__ void disp_bodyd(dxBody *body) {
+  int i;
+  printf("flags: %d\n", body->flags);
+  printf("mass: %f\n", body->mass);
+  printf("InvMass: %f\n", body->invMass);
+  printf("posr:\n");
+  printf("\tpos: (%f,%f,%f,%f)\n", body->posr.pos[0], body->posr.pos[1],
+         body->posr.pos[2], body->posr.pos[3]);
+  for (i = 0; i < 3; ++i)
+    printf("\tR[%d]: (%f,%f,%f,%f)\n", i, (body->posr.R + i * 4)[0],
+           (body->posr.R + i * 4)[1], (body->posr.R + i * 4)[2],
+           (body->posr.R + i * 4)[3]);
+}
+
+// for debug only
+__global__ void cuda_step_none(dxBody *body, int nb, dReal stepsize, dReal g1,
+                               dReal g2, dReal g3) {}
+
+
+// #define _CUDA_DBG
+#if defined(_CUDA_DBG)
+#define _CUDA_DBG_DO(DO) DO
+#else
+#define _CUDA_DBG_DO(DO)
+#endif
+
 
 //****************************************************************************
 // the slow, but sure way
@@ -229,17 +300,43 @@ __device__ dReal cuda_sinc(dReal x)
 
 	//dSetZero (I,3*nb*4);
 	//dSetZero (invI,3*nb*4);
+
+	_CUDA_DBG_DO(printf("[IN CUDA]================Before: Body[%d]: \n", bid));
+	_CUDA_DBG_DO(disp_bodyd(body+bid));
+
 	dReal tmp[9];
-
-
+#if defined(_CUDA_DBG)
+	show_mat(tmp,3,3);
+	printf("before compute inertia tensor \n");
+	show_Pmat(body[bid].mass.I,3,3);
+	show_Pmat(body[bid].posr.R,3,3);
+	printf("=== compute inertia tensor \n");
+#endif
     // compute inertia tensor in global frame
     cuda_dMultiply2_333(tmp, body[bid].mass.I, body[bid].posr.R);
     cuda_dMultiply0_333(I, body[bid].posr.R, tmp);
+
+	_CUDA_DBG_DO(printf("I after compute inertia tensor \n")); 
+	_CUDA_DBG_DO(show_mat(I,3,3);)
+	_CUDA_DBG_DO(printf("tmp after compute inertia tensor \n");)
+	_CUDA_DBG_DO( show_mat(tmp,3,3);)
+
     // compute inverse inertia tensor in global frame
     cuda_dMultiply2_333(tmp, body[bid].invI, body[bid].posr.R);
     cuda_dMultiply0_333(invI, body[bid].posr.R, tmp);
+#if defined(_CUDA_DBG)
+	_CUDA_DBG_DO(printf("tmp after compute inverse inertia tensor \n"); )
+	_CUDA_DBG_DO(show_mat(tmp,3,3);)
+#endif
+	_CUDA_DBG_DO(show_mat(I,3,3));
+	_CUDA_DBG_DO(show_mat(body[bid].avel,3,1));
+	for(i=0;i<9;++i)tmp[i]=0;
+
     // compute rotational force
     cuda_dMultiply0_331(tmp, I, body[bid].avel);
+	// __syncthreads();
+	_CUDA_DBG_DO(printf("tmp after compute rotational force \n"));
+	_CUDA_DBG_DO(show_mat(tmp,3,3));
     cuda_dCross(body[bid].tacc, body[bid].avel, tmp);
 
 
@@ -276,7 +373,10 @@ __device__ dReal cuda_sinc(dReal x)
 	//dSetZero (v,n6);
 
     for (j = 0; j < 3; j++) fe[j] = body[bid].facc[j];
-    for (j = 0; j < 3; j++) fe[3+j] = body[bid].tacc[j];
+    for (j = 0; j < 3; j++) {
+		fe[3+j] = body[bid].tacc[j];
+		_CUDA_DBG_DO( printf("update body[%d].tacc[%d] = %f\n",bid,j,body[bid].tacc[j]);)
+	}
     for (j = 0; j < 3; j++) v[j] = body[bid].lvel[j];
     for (j = 0; j < 3; j++) v[3+j] = body[bid].avel[j];
 
@@ -284,14 +384,26 @@ __device__ dReal cuda_sinc(dReal x)
 	dReal vnew[6];
 	for(i = 0; i < 6; i++) vnew[i] = 0;
 
+	_CUDA_DBG_DO(show_mat(invM, 6,6);)
+	_CUDA_DBG_DO(show_mat(fe, 6,1);)
+	_CUDA_DBG_DO(show_mat(vnew, 1, 6));
 	// no constraints
 	naiveMatMultiply(vnew, invM, fe, 6, 6, 1);
-	for (i = 0; i < 6; i++) vnew[i] = v[i] + stepsize*vnew[i];
+	for (i = 0; i < 6; i++) {
+		vnew[i] = v[i] + stepsize * vnew[i];
+		_CUDA_DBG_DO(printf("update vnew[%d] = %f + %f * %f\n", i, v[i], stepsize, vnew[i]));
+	}
 
 	// apply the velocity update to the bodies
 
-    for (j = 0; j < 3; j++) body[bid].lvel[j] = vnew[j];
-    for (j = 0; j < 3; j++) body[bid].avel[j] = vnew[3+j];
+	for (j = 0; j < 3; j++) {
+		body[bid].lvel[j] = vnew[j];
+		_CUDA_DBG_DO( printf("update body[%d].lvel[%d] to %f\n", bid, j, vnew[j]);)
+	}
+    for (j = 0; j < 3; j++) {
+		body[bid].avel[j] = vnew[3 + j];
+		_CUDA_DBG_DO(printf("update body[%d].avel[%d] to %f\n", bid, j, vnew[3+j]));
+	}
 
 	// update the position and orientation from the new linear/angular velocity
 	// (over the given timestep)
@@ -313,9 +425,9 @@ __device__ dReal cuda_sinc(dReal x)
 
 	dReal h = stepsize;
 
-//	cuPrintf("h == stepsize: %f == %f\n", h, stepsize);
-//	cuPrintf("body[bid]: XYZ1: %f\t%f\t%f\t\n", body[bid].posr.pos[0], body[bid].posr.pos[1], body[bid].posr.pos[2]);
-//	cuPrintf("body[bid]: VEL1: %f\t%f\t%f\t\n", body[bid].lvel[0], body[bid].lvel[1], body[bid].lvel[2]);
+	// cuPrintf("h == stepsize: %f == %f\n", h, stepsize);
+	// cuPrintf("body[bid]: XYZ1: %f\t%f\t%f\t\n", body[bid].posr.pos[0], body[bid].posr.pos[1], body[bid].posr.pos[2]);
+	// cuPrintf("body[bid]: VEL1: %f\t%f\t%f\t\n", body[bid].lvel[0], body[bid].lvel[1], body[bid].lvel[2]);
 
 	// handle linear velocity
 	for (j=0; j<3; j++) body[bid].posr.pos[j] += h * body[bid].lvel[j];
@@ -419,16 +531,17 @@ __device__ dReal cuda_sinc(dReal x)
     body[bid].tacc[2] = 0;
     body[bid].tacc[3] = 0;
 
+	_CUDA_DBG_DO( printf("================After: Body[%d]: \n", bid);)
+	_CUDA_DBG_DO(disp_bodyd(body+bid);)
+
 }
 
 ODE_API void cuda_dInternalStepIsland_x1 (dxWorld *world, dxBody *cuda_body, int nb, dxJoint * *_joint, int nj, dReal stepsize)
 {
-//	cudaPrintfInit();
 
 	cuda_step<<<nb, 1>>>(cuda_body, world->nb, stepsize, world->gravity[0], world->gravity[1], world->gravity[2]);
+	// cuda_step<<<1, 1>>>(cuda_body, world->nb, stepsize, world->gravity[0], world->gravity[1], world->gravity[2]);
 
-//	cudaPrintfDisplay(stdout, true);
-//	cudaPrintfEnd();
 	//cuda_step<<<BLOCKSIZE/nb, 256>>>(cuda_body, world->nb, stepsize, world->gravity[0], world->gravity[1], world->gravity[2]);
 }
 
