@@ -10,7 +10,7 @@ extern "C" {
 typedef void (*dstepper_fn_t)(dxWorld *world, dxBody *const *body, int nb,
                               dxJoint *const *_joint, int nj, dReal stepsize);
 
-ODE_API void cuda_dxProcessIslands(dxWorld *world, dxBody *cuda_body,
+ODE_API void cuda_dxProcessIslands(dxWorld *world, dxBody *cuda_body, dxJoint *cuda_joint,
                                    dReal stepsize, dstepper_fn_t stepper);
 ODE_API void cuda_dInternalStepIsland_x1(dxWorld *world, dxBody *cuda_body,
                                          int nb, dxJoint **_joint, int nj,

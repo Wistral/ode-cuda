@@ -31,7 +31,7 @@
 #include <ode/objects.h>
 #include <ode/ode.h>
 #include <time.h>
-#include "../src/objects.h"
+#include "joints/joint.h"
 #include "texturepath.h"
 
 #include <cuda.h>
@@ -73,7 +73,9 @@ static dBodyID *body;
 static dJointID joint[NUMJ];
 
 static dBodyID cuda_body;
+static dJointID cuda_joint;
 static dBodyID b_buff;
+static dJointID j_buff;
 
 static int stepcount = 0;
 
@@ -178,6 +180,7 @@ void cuda_createTest() {
   }
   // cuda_copyBodiesToDevice(cuda_body, body, num);
   cuda_copyWorldBodiesToDevice(cuda_body, world, num);
+  cuda_copyWorldJointsToDevice(cuda_joint, world, NUMJ);
 }
 
 // start simulation - set viewpoint
@@ -194,6 +197,7 @@ static void start() {
 
 static void cuda_start() {
   b_buff = (dBodyID)malloc(sizeof(dxBody) * num);
+  j_buff = (dJointID)malloc(sizeof(dxJoint) * NUMJ);
   dAllocateODEDataForThread(dAllocateMaskAll);
   if (gfx) {
     static float xyz[3] = {2.6117f, -1.4433f, 2.3700f};
@@ -254,11 +258,11 @@ static void cuda_simLoop(int pause) {
     // dWorldStep(world, SIMSTEP);
 
     // cuda_copyBodiesToDevice2(cuda_body, world, num);
-    cuda_dxProcessIslands(world, cuda_body, SIMSTEP, NULL);
+    cuda_dxProcessIslands(world, cuda_body, cuda_joint, SIMSTEP, NULL);
 
     if (gfx) {
       cuda_copyWorldBodiesFromDevice(world, cuda_body, num, b_buff);
-      // cuda_copyBodiesFromDevice(body, cuda_body, num, b_buff);
+      cuda_copyWorldJointsFromDevice(world, cuda_joint, NUMJ, j_buff);
       float sides[3] = {SIDE, SIDE, SIDE};
       dsSetColor(1, 1, 0);
 
@@ -291,6 +295,7 @@ int main(int argc, char **argv) {
   body = (dBodyID *)malloc(sizeof(dBodyID) * num);
   if (use_cuda) {
     cuda_body = cuda_initBodiesOnDevice(num);
+    cuda_joint = cuda_initJointsOnDevice(NUMJ);
   }
 
   // setup pointers to drawstuff callback functions

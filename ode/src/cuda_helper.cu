@@ -4,6 +4,7 @@
 #include <cuda.h>
 #include <ode/common.h>
 #include "objects.h"
+#include "joints/joint.h"
 #include <ode/cuda_helper.h>
 
 ODE_API void cuda_checkError(const char *msg)
@@ -13,6 +14,14 @@ ODE_API void cuda_checkError(const char *msg)
 		fprintf(stderr, "Cuda error: %s: %s.\n", msg, cudaGetErrorString( err));
 		exit(EXIT_FAILURE);
 	}                         
+}
+
+ODE_API dReal* cuda_realMalloc(unsigned int real_n)
+{
+	dReal* p = nullptr;
+	cudaMalloc((void**) &p, sizeof(dReal)*real_n);
+	cuda_checkError("cuda_realMalloc");
+	return p;
 }
 
 ODE_API void cuda_testMemcpy()
@@ -113,6 +122,17 @@ ODE_API dxBody *cuda_copyWorldBodiesToDevice(dxBody *cuda_body, dxWorld *world, 
 	}
 	cuda_checkError("memcpy bodies h to d 2");
 	return cuda_body;
+}
+
+ODE_API dxJoint *cuda_copyWorldJointsToDevice(dxJoint *cuda_joint, dxWorld *world, int NUM)
+{
+	dxJoint *b;
+	int i=0;
+	for (b=world->firstjoint;b;b=(dxJoint*)b->next) {
+		cudaMemcpy(cuda_joint+(i++), b, sizeof(dxJoint), cudaMemcpyHostToDevice);
+	}
+	cuda_checkError("memcpy joints h to d 2");
+	return cuda_joint;
 }
 
 ODE_API dxBody **cuda_copyBodiesFromDevice(dxBody **body, dxBody *cuda_body, int NUM, dxBody *b_buff)
@@ -231,13 +251,44 @@ ODE_API dxBody **cuda_copyWorldBodiesFromDevice(dxWorld *world, dxBody *cuda_bod
 	return NULL;
 }
 
+ODE_API dxJoint **cuda_copyWorldJointsFromDevice(dxWorld *world, dxJoint *cuda_joint, int NUM, dxJoint *j_buff)
+{
+	// printf("Copy Bodies From Device\n");
+	int i=0;
+	cudaMemcpy(j_buff, cuda_joint, sizeof(dxJoint)*NUM, cudaMemcpyDeviceToHost);
+	cuda_checkError("memcpy bodies from device d to h");
+
+	dxJoint *b,*j;
+	int x;
+
+	for(j=world->firstjoint;j;j=(dxJoint*)j->next){
+		// b = j_buff[i];
+		// j->fps = b.fps;
+		// j->erp = b.erp;
+
+		memcpy((void*)j, (void*)(j_buff+i++), sizeof(dxJoint));
+
+	}
+
+	return NULL;
+}
+
 ODE_API dxBody *cuda_initBodiesOnDevice(int NUM)
 {
 //	printf("Init %i Bodies\n", sizeof(dxBody));
 	dxBody *cuda_body;
 	cudaMalloc((void**) &cuda_body, sizeof(dxBody)*NUM);
-	cuda_checkError("malloc");
+	cuda_checkError("malloc body");
 	return cuda_body;
+}
+
+ODE_API dxJoint *cuda_initJointsOnDevice(int NUM)
+{
+//	printf("Init %i Bodies\n", sizeof(dxBody));
+	dxJoint *cuda_joint;
+	cudaMalloc((void**) &cuda_joint, sizeof(dxJoint)*NUM);
+	cuda_checkError("malloc joint");
+	return cuda_joint;
 }
 
 ODE_API void cuda_free(dxBody *ptr)

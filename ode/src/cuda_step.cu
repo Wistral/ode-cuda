@@ -280,7 +280,7 @@ __global__ void cuda_step_none(dxBody *body, int nb, dReal stepsize, dReal g1,
 //
 // `body' is the body array, `nb' is the size of the array.
 // `_joint' is the body array, `nj' is the size of the array.
- __global__ void cuda_step(dxBody *body, int nb, dReal stepsize, dReal g1, dReal g2, dReal g3)
+ __global__ void cuda_step(dxBody *body, int nb, dxJoint *joint, int nj, dReal stepsize, dReal g1, dReal g2, dReal g3)
 {
 	dVector3 gravity; 
 	gravity[0] = g1;
@@ -546,21 +546,21 @@ if (body[bid].flags & dxBodyGyroscopic) {
 
 }
 
-ODE_API void cuda_dInternalStepIsland_x1 (dxWorld *world, dxBody *cuda_body, int nb, dxJoint * *_joint, int nj, dReal stepsize)
+ODE_API void cuda_dInternalStepIsland_x1 (dxWorld *world, dxBody *cuda_body, int nb, dxJoint *_joint, int nj, dReal stepsize)
 {
 
-	cuda_step<<<nb, 1>>>(cuda_body, world->nb, stepsize, world->gravity[0], world->gravity[1], world->gravity[2]);
+	cuda_step<<<nb, 1>>>(cuda_body, world->nb, _joint, world->nj, stepsize, world->gravity[0], world->gravity[1], world->gravity[2]);
 	// cuda_step<<<1, 1>>>(cuda_body, world->nb, stepsize, world->gravity[0], world->gravity[1], world->gravity[2]);
 
 	//cuda_step<<<BLOCKSIZE/nb, 256>>>(cuda_body, world->nb, stepsize, world->gravity[0], world->gravity[1], world->gravity[2]);
 }
 
- ODE_API void cuda_dxProcessIslands(dxWorld *world, dxBody *cuda_body, dReal stepsize, dstepper_fn_t stepper)
+ ODE_API void cuda_dxProcessIslands(dxWorld *world, dxBody *cuda_body, dxJoint *cuda_joint, dReal stepsize, dstepper_fn_t stepper)
 {
 	const int block_size = BLOCKSIZE;
 	dim3 dimBlock(block_size, block_size);
 	dim3 dimGrid(block_size, block_size);
 
-	cuda_dInternalStepIsland_x1(world, cuda_body, world->nb, NULL, 0, stepsize);
+	cuda_dInternalStepIsland_x1(world, cuda_body, world->nb, cuda_joint, world->nj, stepsize);
 }
 

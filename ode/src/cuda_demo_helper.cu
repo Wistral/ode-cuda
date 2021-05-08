@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <ode/cuda_demo_helper.h>
 
+
 ODE_API void printMatrixPad4(const char *name, const char *fmt, dReal const *a,
                              const int h, const int w) {
   printf("%s:\n", name);
@@ -38,7 +39,7 @@ ODE_API void printPaddedMatrixf(const char *name, dReal const *a, const int h,
 
 ODE_API void printMatrix0f(const char *name, dReal const *a, const int h,
                            const int w) {
-  printMatrixBase(name, "%.0f, ", a, h, w, 0);
+  printMatrixBase(name, "%.0f,\t", a, h, w, 0);
 }
 
 ODE_API void makeIdMatrix(dReal *a, int s, int n)
