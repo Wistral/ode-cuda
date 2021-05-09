@@ -179,8 +179,8 @@ void cuda_createTest() {
     // disp_body(body[i]);
   }
   // cuda_copyBodiesToDevice(cuda_body, body, num);
-  cuda_copyWorldBodiesToDevice(cuda_body, world, num);
-  cuda_copyWorldJointsToDevice(cuda_joint, world, NUMJ);
+  cuda_copyWorldBodiesToDevice(cuda_body, world);
+  cuda_copyWorldJointsToDevice(cuda_joint, world);
 }
 
 // start simulation - set viewpoint
@@ -262,7 +262,7 @@ static void cuda_simLoop(int pause) {
 
     if (gfx) {
       cuda_copyWorldBodiesFromDevice(world, cuda_body, num, b_buff);
-      cuda_copyWorldJointsFromDevice(world, cuda_joint, NUMJ, j_buff);
+      cuda_copyWorldJointsFromDevice(world, cuda_joint, j_buff);
       float sides[3] = {SIDE, SIDE, SIDE};
       dsSetColor(1, 1, 0);
 

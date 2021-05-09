@@ -111,7 +111,7 @@ ODE_API dxBody *cuda_copyBodiesToDevice(dxBody *cuda_body, dxBody **body, int NU
 	return cuda_body;
 }
 
-ODE_API dxBody *cuda_copyWorldBodiesToDevice(dxBody *cuda_body, dxWorld *world, int NUM)
+ODE_API dxBody *cuda_copyWorldBodiesToDevice(dxBody *cuda_body, dxWorld *world)
 {
 	dxBody *b;
 	int i=0;
@@ -124,7 +124,7 @@ ODE_API dxBody *cuda_copyWorldBodiesToDevice(dxBody *cuda_body, dxWorld *world, 
 	return cuda_body;
 }
 
-ODE_API dxJoint *cuda_copyWorldJointsToDevice(dxJoint *cuda_joint, dxWorld *world, int NUM)
+ODE_API dxJoint *cuda_copyWorldJointsToDevice(dxJoint *cuda_joint, dxWorld *world)
 {
 	dxJoint *b;
 	int i=0;
@@ -251,12 +251,12 @@ ODE_API dxBody **cuda_copyWorldBodiesFromDevice(dxWorld *world, dxBody *cuda_bod
 	return NULL;
 }
 
-ODE_API dxJoint **cuda_copyWorldJointsFromDevice(dxWorld *world, dxJoint *cuda_joint, int NUM, dxJoint *j_buff)
+ODE_API dxJoint **cuda_copyWorldJointsFromDevice(dxWorld *world, dxJoint *cuda_joint, dxJoint *j_buff)
 {
 	// printf("Copy Bodies From Device\n");
 	int i=0;
-	cudaMemcpy(j_buff, cuda_joint, sizeof(dxJoint)*NUM, cudaMemcpyDeviceToHost);
-	cuda_checkError("memcpy bodies from device d to h");
+	cudaMemcpy(j_buff, cuda_joint, sizeof(dxJoint)*(world->nj), cudaMemcpyDeviceToHost);
+	cuda_checkError("memcpy WorldJoints from device d to h");
 
 	dxJoint *b,*j;
 	int x;
@@ -292,6 +292,11 @@ ODE_API dxJoint *cuda_initJointsOnDevice(int NUM)
 }
 
 ODE_API void cuda_free(dxBody *ptr)
+{
+	cudaFree(ptr);
+}
+
+ODE_API void cuda_jfree(dxJoint *ptr)
 {
 	cudaFree(ptr);
 }
