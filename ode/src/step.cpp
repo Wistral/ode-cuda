@@ -209,7 +209,7 @@ static void MultiplyAdd0_p81 (dReal *A, dReal *B, dReal *C, int p)
 
 
 // this assumes the 4th and 8th rows of B are zero.
-
+// A:1x8 B: qx8 C: 1xq.  A = C * B
 static void MultiplyAdd1_8q1 (dReal *A, dReal *B, dReal *C, int q)
 {
   int k;
@@ -1025,6 +1025,7 @@ void dInternalStepIsland_x2 (dxWorld *world, dxBody * const *body, int nb,
     dMULTIPLYADD0_331 (body[i]->avel,body_invI,cforce+i*8+4);
   }
 
+  // MARK: BEFORE dxStepBody() IMPLEMENT
   // update the position and orientation from the new linear/angular velocity
   // (over the given timestep)
 # ifdef TIMING

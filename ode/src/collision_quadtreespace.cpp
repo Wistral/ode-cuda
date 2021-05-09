@@ -336,6 +336,7 @@ struct dxQuadTreeSpace : public dxSpace{
 	void computeAABB();
 	
 	void cleanGeoms();
+	void collideCUDA(void* UserData, dNearCallback* Callback);
 	void collide(void* UserData, dNearCallback* Callback);
 	void collide2(void* UserData, dxGeom* g1, dNearCallback* Callback);
 
@@ -541,6 +542,9 @@ void dxQuadTreeSpace::cleanGeoms(){
 
 	lock_count--;
 }
+
+void dxQuadTreeSpace::collideCUDA(void* UserData, dNearCallback* Callback){}
+
 
 void dxQuadTreeSpace::collide(void* UserData, dNearCallback* Callback){
   dAASSERT(Callback);

@@ -226,11 +226,12 @@ struct dxSpace : public dxGeom {
   virtual void remove (dxGeom *);
   virtual void dirty (dxGeom *);
 
-  virtual void cleanGeoms()=0;
   // turn all dirty geoms into clean geoms by computing their AABBs and any
   // other space data structures that are required. this should clear the
   // GEOM_DIRTY and GEOM_AABB_BAD flags of all geoms.
+  virtual void cleanGeoms()=0;
 
+  virtual void collideCUDA (void *data, dNearCallback *callback)=0;
   virtual void collide (void *data, dNearCallback *callback)=0;
   virtual void collide2 (void *data, dxGeom *geom, dNearCallback *callback)=0;
 };

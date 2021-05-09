@@ -218,6 +218,7 @@ void dxSpace::dirty (dxGeom *geom)
 struct dxSimpleSpace : public dxSpace {
   dxSimpleSpace (dSpaceID _space);
   void cleanGeoms();
+  void collideCUDA (void *data, dNearCallback *callback) {};
   void collide (void *data, dNearCallback *callback);
   void collide2 (void *data, dxGeom *geom, dNearCallback *callback);
 };
@@ -374,6 +375,7 @@ struct dxHashSpace : public dxSpace {
   void setLevels (int minlevel, int maxlevel);
   void getLevels (int *minlevel, int *maxlevel);
   void cleanGeoms();
+  void collideCUDA (void *data, dNearCallback *callback);
   void collide (void *data, dNearCallback *callback);
   void collide2 (void *data, dxGeom *geom, dNearCallback *callback);
 };
@@ -603,9 +605,14 @@ void dxHashSpace::collide2 (void *data, dxGeom *geom,
   lock_count--;
 }
 
+// collide detection in CUDA (not implement yet)
+void dxHashSpace::collideCUDA(void *, dNearCallback *callback) {
+  dAASSERT(callback);
+
+}
+
 //****************************************************************************
 // space functions
-
 dxSpace *dSimpleSpaceCreate (dxSpace *space)
 {
   return new dxSimpleSpace (space);
@@ -749,7 +756,11 @@ void dSpaceCollide (dxSpace *space, void *data, dNearCallback *callback)
 {
   dAASSERT (space && callback);
   dUASSERT (dGeomIsSpace(space),"argument not a space");
+#if defined(USECUDA)
+  space->collideCUDA(data, callback);
+#else
   space->collide (data,callback);
+#endif
 }
 
 

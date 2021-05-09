@@ -144,6 +144,7 @@ struct dxSAPSpace : public dxSpace
 	virtual void dirty(dxGeom* g);
 	virtual void computeAABB();
 	virtual void cleanGeoms();
+	virtual void collideCUDA( void *data, dNearCallback *callback ) {};
 	virtual void collide( void *data, dNearCallback *callback );
 	virtual void collide2( void *data, dxGeom *geom, dNearCallback *callback );
 

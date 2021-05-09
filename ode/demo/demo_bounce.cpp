@@ -66,12 +66,12 @@ static void simLoop(int pause) {
   const dReal *pos, *R;
   static unsigned int sc;
   // printf("Simloop: %d\n", sc++);
-  std::cerr << "Simloop: " << sc++ << " \n";
+  std::cerr << "Simloop: " << sc++ << "\t";
 
   flag = 0;
-  dSpaceCollide(space, 0, &nearCallback);
 
 #if defined(USECUDA)
+  dSpaceCollide(space, nullptr, &nearCallback);
   cuda_copyWorldBodiesToDevice(ball_cuda.body, world);
   // cuda_copyBodiesToDevice(ball_cuda.body, &ball.body, 1);
   cuda_dxProcessIslands(world, ball_cuda.body, ball_cuda.joint, 0.1, NULL);
@@ -79,6 +79,7 @@ static void simLoop(int pause) {
                                  ball_cuda.bbuf);
   // cuda_copyBodiesFromDevice2(world, ball_cuda.body, 1, ball.body);
 #else
+  dSpaceCollide(space, nullptr, &nearCallback);
   dWorldStep(world, 0.1);
 #endif
 
@@ -92,7 +93,7 @@ static void simLoop(int pause) {
   R = dBodyGetRotation(ball.body);
 
   std::cerr << "ball pos: " << pos[0] << ", " << pos[1] << ", " << pos[2]
-            << "\n";
+            << "\r";
   dsDrawSphere(pos, R, radius);
 }
 
